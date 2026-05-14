@@ -29,16 +29,19 @@ namespace BlupiEdit
 				openButton.Text = "&Save";
 			levelSetList.BeginUpdate();
 			for (int i = 1; i < 9; i++)
-				if (File.Exists(string.Format("data\\info{0:000}.blp", i)))
+			{
+				string infoPath = LevelData.FindPathCaseInsensitive(LevelData.GamePath("data", string.Format("info{0:000}.blp", i)));
+				if (File.Exists(infoPath))
 				{
 					users.Add(i);
-					using (FileStream str = File.OpenRead(string.Format("data\\info{0:000}.blp", i)))
+					using (FileStream str = File.OpenRead(infoPath))
 					using (BinaryReader r = new BinaryReader(str))
 					{
 						str.Seek(0x16, SeekOrigin.Begin);
 						levelSetList.Items.Add("User " + i + " - " + r.ReadString(40));
 					}
 				}
+			}
 			levelSetList.EndUpdate();
 			levelSetList.SelectedIndex = 0;
 		}

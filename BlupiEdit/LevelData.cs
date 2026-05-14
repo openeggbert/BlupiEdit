@@ -121,6 +121,61 @@ namespace BlupiEdit
 
 	public class LevelData
 	{
+		#region Path Helpers
+
+		// Base directory of the game (directory containing BLUPI.EXE / EGGBERT.EXE)
+		private static string gameBaseDirectory = null;
+
+		/// <summary>
+		/// Combines gameBaseDirectory with the given sub-path parts using Path.Combine.
+		/// </summary>
+		public static string GamePath(params string[] parts)
+		{
+			string result = gameBaseDirectory ?? Directory.GetCurrentDirectory();
+			foreach (string part in parts)
+				result = Path.Combine(result, part);
+			return result;
+		}
+
+		/// <summary>
+		/// Case-insensitive path resolution for Linux.
+		/// If the exact path exists, returns it. Otherwise searches the parent directory
+		/// for a case-insensitive match and returns the corrected path (or original if not found).
+		/// </summary>
+		public static string FindPathCaseInsensitive(string path)
+		{
+			if (string.IsNullOrEmpty(path))
+				return path;
+			if (File.Exists(path) || Directory.Exists(path))
+				return path;
+
+			string parent = Path.GetDirectoryName(path);
+			string name = Path.GetFileName(path);
+			if (string.IsNullOrEmpty(parent) || string.IsNullOrEmpty(name))
+				return path;
+
+			// Recursively resolve parent first
+			string resolvedParent = FindPathCaseInsensitive(parent);
+			if (!Directory.Exists(resolvedParent))
+				return path;
+
+			try
+			{
+				string[] entries = Directory.GetFileSystemEntries(resolvedParent);
+				foreach (string entry in entries)
+				{
+					if (string.Compare(Path.GetFileName(entry), name, StringComparison.OrdinalIgnoreCase) == 0)
+						return entry;
+				}
+			}
+			catch (Exception)
+			{
+				// ignore
+			}
+			return path;
+		}
+
+		#endregion
 		#region Instance Members
 		public ushort MajorVersion { get; set; }
 		public ushort MinorVersion { get; set; }
@@ -237,7 +292,8 @@ namespace BlupiEdit
 		public static void LoadGame(string filename)
 		{
 			IsBlupi2 = true;
-			Environment.CurrentDirectory = Path.GetDirectoryName(Path.GetFullPath(filename));
+			gameBaseDirectory = Path.GetDirectoryName(Path.GetFullPath(filename));
+			Console.WriteLine("[BlupiEdit] gameBaseDirectory = " + gameBaseDirectory);
 			using (FileStream fs = File.OpenRead(filename))
 			{
 				if (IsBlupi2)
@@ -299,9 +355,9 @@ namespace BlupiEdit
 		public static string GetLevelName(int userid, int levelnum)
 		{
 			if (userid != 0)
-				return string.Format("data\\u{0:000}-{1:000}.blp", userid, levelnum);
+				return FindPathCaseInsensitive(GamePath("data", string.Format("u{0:000}-{1:000}.blp", userid, levelnum)));
 			else
-				return string.Format("data\\world{0:000}.blp", levelnum);
+				return FindPathCaseInsensitive(GamePath("data", string.Format("world{0:000}.blp", levelnum)));
 		}
 
 		public static void SaveLevel()
@@ -321,11 +377,28 @@ namespace BlupiEdit
 
 		public static Bitmap LoadImage(string filename)
 		{
-			Bitmap bmp;
-			if (File.Exists(string.Format(@"IMAGE16\{0}.blp", filename)))
-				bmp = new Bitmap(string.Format(@"IMAGE16\{0}.blp", filename));
+			string image16 = FindPathCaseInsensitive(GamePath("IMAGE16", filename + ".blp"));
+			string image08 = FindPathCaseInsensitive(GamePath("IMAGE08", filename + ".blp"));
+
+			string path;
+
+			Console.WriteLine("[BlupiEdit] LoadImage: trying " + image16);
+			if (File.Exists(image16))
+			{
+				path = image16;
+			}
+			else if (File.Exists(image08))
+			{
+				path = image08;
+			}
 			else
-				bmp = new Bitmap(string.Format(@"IMAGE08\{0}.blp", filename));
+			{
+				throw new FileNotFoundException(
+					"Image file not found. Tried: " + image16 + " and " + image08);
+			}
+
+			Console.WriteLine("[BlupiEdit] LoadImage: loading " + path);
+			Bitmap bmp = new Bitmap(path);
 			bmp.MakeTransparent(Color.Blue);
 			return bmp;
 		}
