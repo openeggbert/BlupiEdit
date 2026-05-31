@@ -12,6 +12,7 @@ namespace BlupiEdit
 	public partial class MainForm : Form
 	{
 		int userid, levelnum;
+		private LevelItem selectedItem = null;
 
 		public MainForm()
 		{
@@ -19,6 +20,7 @@ namespace BlupiEdit
 
 			tilePanel.Paint += tilePanel_Paint;
 			objectPanel.Paint += objectPanel_Paint;
+			objectPanel.MouseClick += objectPanel_MouseClick;
 			hScrollBar1.Scroll += delegate { tilePanel.Invalidate(); };
 			vScrollBar1.Scroll += delegate { tilePanel.Invalidate(); };
 			hScrollBar2.Scroll += delegate { objectPanel.Invalidate(); };
@@ -175,6 +177,11 @@ namespace BlupiEdit
 			// Trigger redraws
 			tilePanel.Invalidate();
 			objectPanel.Invalidate();
+
+			// Set propertyGrid to level view model
+			propertyGrid1.SelectedObject = new LevelViewModel(LevelData.CurrentLevel);
+			Console.WriteLine("[BlupiEdit] PropertyGrid assigned: true");
+			Console.WriteLine("[BlupiEdit] Object panel exists: true");
 		}
 
 		private void tilePanel_Paint(object sender, PaintEventArgs e)
@@ -254,6 +261,37 @@ namespace BlupiEdit
 			}
 		}
 
+		private void objectPanel_MouseClick(object sender, MouseEventArgs e)
+		{
+			LevelData level = LevelData.CurrentLevel;
+			if (level == null) return;
+
+			int scrollX = hScrollBar2.Value;
+			int scrollY = vScrollBar2.Value;
+			Point clickWorld = new Point(e.X + scrollX, e.Y + scrollY);
+
+			LevelItem best = null;
+			int bestDist = int.MaxValue;
+			foreach (LevelItem item in level.Items)
+			{
+				int dx = item.PointA.X - clickWorld.X;
+				int dy = item.PointA.Y - clickWorld.Y;
+				int dist = dx * dx + dy * dy;
+				if (dist < bestDist && dist < (LevelData.GridSize * LevelData.GridSize))
+				{
+					best = item;
+					bestDist = dist;
+				}
+			}
+
+			selectedItem = best;
+			if (selectedItem != null)
+				propertyGrid1.SelectedObject = selectedItem;
+			else
+				propertyGrid1.SelectedObject = (LevelData.CurrentLevel != null) ? (object)new LevelViewModel(LevelData.CurrentLevel) : null;
+			objectPanel.Invalidate();
+		}
+
 		private void objectPanel_Paint(object sender, PaintEventArgs e)
 		{
 			LevelData level = LevelData.CurrentLevel;
@@ -286,7 +324,20 @@ namespace BlupiEdit
 				if (item.Tile >= sprites.Length) continue;
 				try
 				{
-					gfx.DrawSprite(sprites[item.Tile], item.PointA - new Size(scrollX, scrollY));
+					Point drawPos = item.PointA - new Size(scrollX, scrollY);
+					gfx.DrawSprite(sprites[item.Tile], drawPos);
+					// Highlight selected item
+					if (item == selectedItem)
+					{
+ 					Size sprSize = sprites[item.Tile].Image != null
+ 						? sprites[item.Tile].Image.Size
+ 						: new Size(LevelData.GridSize, LevelData.GridSize);
+ 					gfx.DrawRectangle(Pens.Yellow,
+ 						drawPos.X + sprites[item.Tile].Offset.X,
+ 						drawPos.Y + sprites[item.Tile].Offset.Y,
+ 						sprSize.Width - 1,
+ 						sprSize.Height - 1);
+					}
 				}
 				catch (Exception ex)
 				{

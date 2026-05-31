@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="LevelData.cs" />
+    <Compile Include="LevelViewModel.cs" />
     <Compile Include="LevelSelectForm.cs">
       <SubType>Form</SubType>
     </Compile>
