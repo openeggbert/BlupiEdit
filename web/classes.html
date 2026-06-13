@@ -245,12 +245,33 @@
     <!-- ═══════════════════════════════════ -->
     <h2 id="levelviewmodel">LevelViewModel</h2>
     <p>File: <code>BlupiEdit/LevelViewModel.cs</code> | Namespace: <code>BlupiEdit</code></p>
-    <p>Read-only PropertyGrid adapter for <code>LevelData</code>. All properties have <code>[Category]</code> attributes; none have setters.</p>
+    <p>Read-only PropertyGrid adapter for <code>LevelData</code>. All properties are get-only and forward to the wrapped <code>LevelData</code> instance. Each property carries a <code>[Category]</code> attribute for PropertyGrid grouping. No setters — changes must be made to the underlying <code>LevelData</code> directly.</p>
 
     <h3>Constructor</h3>
-    <pre><code><span class="kw">public</span> <span class="fn">LevelViewModel</span>(<span class="ty">LevelData</span> l)  <span class="cm">// stores reference to l</span></code></pre>
+    <pre><code><span class="kw">public</span> <span class="fn">LevelViewModel</span>(<span class="ty">LevelData</span> l)  <span class="cm">// stores reference; does not copy</span></code></pre>
 
-    <p>See <a href="architecture.html#levelviewmodel">Architecture → LevelViewModel</a> for the full property table.</p>
+    <h3>Properties</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Category</th><th>Type</th><th>Delegates to</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>LevelName</code></td><td>Level</td><td class="td-type">string</td><td><code>level.LevelName</code></td></tr>
+          <tr><td class="td-name"><code>Background</code></td><td>Level</td><td class="td-type">short</td><td><code>level.Background</code></td></tr>
+          <tr><td class="td-name"><code>Music</code></td><td>Level</td><td class="td-type">short</td><td><code>level.Music</code></td></tr>
+          <tr><td class="td-name"><code>ItemsCount</code></td><td>Level</td><td class="td-type">int</td><td><code>level.Items?.Count ?? 0</code></td></tr>
+          <tr><td class="td-name"><code>Width</code></td><td>Level</td><td class="td-type">int</td><td><code>LevelData.LevelSize</code> (always 100)</td></tr>
+          <tr><td class="td-name"><code>Height</code></td><td>Level</td><td class="td-type">int</td><td><code>LevelData.LevelSize</code> (always 100)</td></tr>
+          <tr><td class="td-name"><code>PixelWidth</code></td><td>Level</td><td class="td-type">int</td><td><code>LevelData.PixelSize</code> (always 6400)</td></tr>
+          <tr><td class="td-name"><code>PixelHeight</code></td><td>Level</td><td class="td-type">int</td><td><code>LevelData.PixelSize</code> (always 6400)</td></tr>
+          <tr><td class="td-name"><code>HorizontalScroll</code></td><td>Scroll</td><td class="td-type">bool</td><td><code>level.HorizontalScroll</code></td></tr>
+          <tr><td class="td-name"><code>VerticalScroll</code></td><td>Scroll</td><td class="td-type">bool</td><td><code>level.VerticalScroll</code></td></tr>
+          <tr><td class="td-name"><code>MajorVersion</code></td><td>Version</td><td class="td-type">ushort</td><td><code>level.MajorVersion</code></td></tr>
+          <tr><td class="td-name"><code>MinorVersion</code></td><td>Version</td><td class="td-type">ushort</td><td><code>level.MinorVersion</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><code>LevelViewModel</code> is assigned to <code>propertyGrid1.SelectedObject</code> whenever a level is loaded or when clicking in empty space on the object panel. When an item is clicked, the raw <code>LevelItem</code> is assigned instead (so its <code>[DisplayName]</code> attributes appear directly).</p>
 
     <!-- ═══════════════════════════════════ -->
     <h2 id="tileinfo">TileInfo</h2>
@@ -274,23 +295,72 @@
     <!-- ═══════════════════════════════════ -->
     <h2 id="tilelist">TileList : UserControl</h2>
     <p>File: <code>BlupiEdit/TileList.cs</code> | Namespace: <code>BlupiEdit</code></p>
-    <p>Custom scrollable tile-picker control. See <a href="architecture.html#tilelist">Architecture → TileList</a> for full documentation.</p>
+    <p>Custom scrollable tile-picker control. Renders a grid of tile bitmaps, supports mouse selection and keyboard navigation, and fires events on selection and drag. Marked <code>[DefaultEvent("SelectedIndexChanged")]</code>.</p>
 
-    <h3>Public API summary</h3>
+    <h3>Properties</h3>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Member</th><th>Type</th><th>Description</th></tr></thead>
+        <thead><tr><th>Member</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td class="td-name"><code>SelectedIndex</code></td><td class="td-type">int { get; set; }</td><td>Selected tile index (−1 = none)</td></tr>
-          <tr><td class="td-name"><code>ImageSize</code></td><td class="td-type">int { get; set; }</td><td>Tile display size in pixels (default 8)</td></tr>
-          <tr><td class="td-name"><code>Direction</code></td><td class="td-type">Direction { get; set; }</td><td>Layout direction</td></tr>
-          <tr><td class="td-name"><code>Images</code></td><td class="td-type">List&lt;Bitmap&gt;</td><td>Tile bitmaps to display</td></tr>
-          <tr><td class="td-name"><code>ScrollValue</code></td><td class="td-type">int { get; set; }</td><td>Current scrollbar value (horizontal or vertical)</td></tr>
-          <tr><td class="td-name"><code>SelectedIndexChanged</code></td><td class="td-type">EventHandler</td><td>Fires when selection changes</td></tr>
-          <tr><td class="td-name"><code>ItemDrag</code></td><td class="td-type">EventHandler</td><td>Fires when drag threshold exceeded</td></tr>
-          <tr><td class="td-name"><code>ChangeSize()</code></td><td class="td-type">void</td><td>Recomputes scrollbar range after Images change or resize</td></tr>
-          <tr><td class="td-name"><code>GetItemAtPoint(Point)</code></td><td class="td-type">int</td><td>Returns tile index at given client coordinates</td></tr>
-          <tr><td class="td-name"><code>GetItemBounds(int)</code></td><td class="td-type">Rectangle</td><td>Returns the client rectangle of a tile slot</td></tr>
+          <tr><td class="td-name"><code>SelectedIndex</code></td><td class="td-type">int { get; set; }</td><td>−1</td><td>Zero-based index of the selected tile. Setting scrolls the view to ensure visibility and fires <code>SelectedIndexChanged</code>. <code>[Browsable(false)]</code>.</td></tr>
+          <tr><td class="td-name"><code>ImageSize</code></td><td class="td-type">int { get; set; }</td><td>8</td><td>Display size of each tile in pixels. Tile cell size = <code>ImageSize + 4</code> (4 px padding). Triggers <code>ChangeSize()</code> when set. In BlupiEdit, set to 64 for Object tiles.</td></tr>
+          <tr><td class="td-name"><code>Direction</code></td><td class="td-type">Direction { get; set; }</td><td>Vertical</td><td>Layout direction. <code>Vertical</code> — tiles flow across rows, scrollbar on right. <code>Horizontal</code> — tiles flow down columns, scrollbar at bottom.</td></tr>
+          <tr><td class="td-name"><code>Images</code></td><td class="td-type">List&lt;Bitmap&gt;</td><td>empty</td><td>List of tile bitmaps to display. Must call <code>ChangeSize()</code> after modifying.</td></tr>
+          <tr><td class="td-name"><code>ScrollValue</code></td><td class="td-type">int { get; set; }</td><td>0</td><td>Current scroll position in pixels. Clamped to <code>[0, scrollBar.Maximum]</code>. <code>[Browsable(false)]</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Events</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Event</th><th>Type</th><th>Fires when</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>SelectedIndexChanged</code></td><td class="td-type">EventHandler</td><td>Selection changes (mouse click or keyboard). Also fires when <code>SelectedIndex</code> is set programmatically.</td></tr>
+          <tr><td class="td-name"><code>ItemDrag</code></td><td class="td-type">EventHandler</td><td>Mouse moves beyond <code>SystemInformation.DragSize</code> from the initial click position while left button held.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Methods</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Return</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ChangeSize()</code></td><td>void</td><td>Recomputes scrollbar maximum based on <code>Images.Count</code>, <code>ImageSize</code>, and control dimensions. Call after modifying <code>Images</code> or after the control is resized.</td></tr>
+          <tr><td><code>GetItemAtPoint(Point)</code></td><td>int</td><td>Returns the tile index at the given client coordinates, accounting for scroll offset and Direction. Returns <code>Images.Count - 1</code> if the point is past the last tile.</td></tr>
+          <tr><td><code>GetItemBounds(int index)</code></td><td>Rectangle</td><td>Returns the client-space rectangle of the tile slot at <code>index</code>, accounting for scroll offset and Direction. Returns <code>Rectangle.Empty</code> if direction is unknown.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Layout mathematics</h3>
+    <p>The cell size is always <code>actualImageSize = ImageSize + 4</code>. For <code>Direction.Vertical</code>:</p>
+    <pre><code>tilesPerRow = (controlWidth - vScrollBar.Width) / actualImageSize
+numRows     = ceil(Images.Count / tilesPerRow)
+scrollMax   = numRows × actualImageSize - controlHeight</code></pre>
+    <p>For <code>Direction.Horizontal</code>:</p>
+    <pre><code>tilesPerCol = (controlHeight - hScrollBar.Height) / actualImageSize
+numCols     = ceil(Images.Count / tilesPerCol)
+scrollMax   = numCols × actualImageSize - controlWidth</code></pre>
+    <p>Tile index calculation for hit-testing (Vertical direction):</p>
+    <pre><code>column = min(clickX / actualImageSize, tilesPerRow)
+row    = (clickY + scrollValue) / actualImageSize
+index  = row × tilesPerRow + column</code></pre>
+
+    <h3>Keyboard navigation</h3>
+    <p>The control intercepts arrow keys, Home, End, PageUp, PageDown via <code>PreviewKeyDown</code>. For <code>Direction.Vertical</code>:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Key</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>↓</td><td>Move down one row (<code>SelectedIndex += tilesPerRow</code>)</td></tr>
+          <tr><td>↑</td><td>Move up one row (<code>SelectedIndex -= tilesPerRow</code>)</td></tr>
+          <tr><td>→</td><td>Move right one tile (<code>SelectedIndex += 1</code>)</td></tr>
+          <tr><td>←</td><td>Move left one tile (<code>SelectedIndex -= 1</code>)</td></tr>
+          <tr><td>Home</td><td>Jump to first tile</td></tr>
+          <tr><td>End</td><td>Jump to last tile</td></tr>
+          <tr><td>PageUp / PageDown</td><td>Move by one full page of rows</td></tr>
         </tbody>
       </table>
     </div>

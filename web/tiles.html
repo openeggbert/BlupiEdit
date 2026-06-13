@@ -35,13 +35,16 @@
       <a href="#overview">Overview</a>
       <a href="#tiletypes">TileTypes Enum</a>
       <a href="#tileinfo">TileInfo Structure</a>
+      <a href="#tileinfo-memory">Binary Layout (12 bytes)</a>
       <a href="#sprite">Sprite Structure</a>
       <a href="#extraction">EXE Extraction</a>
       <a href="#image-dirs">Image Directories</a>
-      <a href="#transparency">Transparency</a>
+      <a href="#memory-model">Memory Model</a>
+      <a href="#transparency">Chroma-Key Transparency</a>
       <a href="#rendering">Rendering Pipeline</a>
       <a href="#grid">Tile Grid Rendering</a>
       <a href="#background">Background Rendering</a>
+      <a href="#coordinate-system">Coordinate System</a>
     </div>
   </aside>
 
@@ -51,87 +54,74 @@
 
     <h2 id="overview">Overview</h2>
 
-    <p>Speedy Blupi II stores its graphics as large bitmap files (<code>.blp</code> extension, but really standard BMP format). Individual tile frames are specified by a table of rectangle/offset pairs embedded in the game executable (<code>BLUPI.EXE</code>). BlupiEdit reads these tables at hard-coded offsets and uses them to cut individual sprite bitmaps from the sheets.</p>
+    <p>Speedy Blupi II stores its graphics as large bitmap files (<code>.blp</code> extension — same extension as level files, but these are standard Windows BMP). Individual tile frames are specified by a table of rectangle + offset descriptors embedded in the game executable (<code>BLUPI.EXE</code>). BlupiEdit reads these tables at hard-coded byte offsets and uses them to extract individual sprite bitmaps from the sprite sheets.</p>
 
-    <pre><code>BLUPI.EXE
-    ├── TileInfo[] at 0x862F0  → blupi000.blp (Blupi sprite sheet 0)
-    ├── TileInfo[] at 0x872B8  → object.blp   (environment tiles)
-    ├── TileInfo[] at 0x88768  → element.blp  (element tiles)
-    └── TileInfo[] at 0x894F8  → explo.blp    (explosion frames)
+    <pre><code>BLUPI.EXE  (tile metadata embedded at fixed byte offsets)
+    ├── int16 count + TileInfo[] at 0x862F0  → blupi000.blp (Blupi sprite sheet)
+    ├── int16 count + TileInfo[] at 0x872B8  → object.blp   (environment tiles)
+    ├── int16 count + TileInfo[] at 0x88768  → element.blp  (element tiles)
+    └── int16 count + TileInfo[] at 0x894F8  → explo.blp    (explosion frames)
 
-IMAGE16/ or IMAGE08/
-    ├── blupi000.blp  ─── Bitmap sheet; cut by TileInfo → Sprite[]
-    ├── blupi001.blp  ─── Blupi variant 1
-    ├── blupi002.blp  ─── Blupi variant 2
-    ├── blupi003.blp  ─── Blupi variant 3
-    ├── object.blp    ─── Environment/tile sheet
-    ├── element.blp   ─── Element sheet
-    ├── explo.blp     ─── Explosion sheet
-    └── decor{N}.blp  ─── Background images (not cut into sprites)</code></pre>
+Sprite sheet files  (relative to game EXE)
+    IMAGE16/ or IMAGE08/
+    ├── blupi000.blp  ─── character animation sheet
+    ├── blupi001.blp  ─── character variant 1
+    ├── blupi002.blp  ─── character variant 2
+    ├── blupi003.blp  ─── character variant 3
+    ├── object.blp    ─── environment tile sheet (used for the 100×100 grid)
+    ├── element.blp   ─── element sheet (interactive objects)
+    ├── explo.blp     ─── explosion frames
+    └── decor{N}.blp  ─── background images (NOT cut into sprites; tiled directly)</code></pre>
+
+    <p>At startup (<code>LoadGame()</code>):</p>
+    <ol>
+      <li>BlupiEdit opens <code>BLUPI.EXE</code> and reads the four <code>TileInfo</code> arrays at the hard-coded offsets.</li>
+      <li>For each sprite sheet, it opens the BMP, applies chroma-key transparency, then clones one sub-rectangle per <code>TileInfo</code> record into a <code>Sprite</code> object.</li>
+      <li>The source BMP sheet is disposed immediately after all frames are cut from it — only the individual sprite bitmaps are kept in memory.</li>
+      <li>All sprite arrays are stored in <code>LevelData.TileImages</code>, a static dictionary that lives for the entire application session.</li>
+    </ol>
 
     <h2 id="tiletypes">TileTypes Enum</h2>
 
-    <p>The <code>TileTypes</code> enum serves as a key in the <code>TileImages</code> dictionary and as the <code>ArtFile</code> field in <code>LevelItem</code>.</p>
+    <p>File: <code>BlupiEdit/LevelData.cs</code></p>
+
+    <p><code>TileTypes : ushort</code> serves two roles: the key in the <code>TileImages</code> dictionary, and the value of the <code>ArtFile</code> field in <code>LevelItem</code>. It identifies which sprite sheet a given item or tile uses.</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>ID</th><th>Source BMP</th><th>TileInfo offset in EXE</th><th>Description</th></tr></thead>
+        <thead><tr><th>Name</th><th>ID</th><th>Source BMP</th><th>TileInfo EXE offset</th><th>Description</th></tr></thead>
         <tbody>
           <tr>
-            <td class="td-name"><code>None</code></td>
-            <td>0</td>
-            <td>—</td>
-            <td>—</td>
-            <td>No art file; used when an item has no graphic</td>
+            <td class="td-name"><code>None</code></td><td>0</td><td>—</td><td>—</td>
+            <td>No art; item has no renderable sprite</td>
           </tr>
           <tr>
-            <td class="td-name"><code>Object</code></td>
-            <td>1</td>
-            <td><code>object.blp</code></td>
-            <td><code>0x872B8</code></td>
-            <td>Environment tiles; used in the 100×100 tile grid</td>
+            <td class="td-name"><code>Object</code></td><td>1</td><td><code>object.blp</code></td><td><code>0x872B8</code></td>
+            <td>Environment/terrain tiles; used for the 100×100 tile grid and for items whose <code>ArtFile = Object</code></td>
           </tr>
           <tr>
-            <td class="td-name"><code>Blupi000</code></td>
-            <td>2</td>
-            <td><code>blupi000.blp</code></td>
-            <td><code>0x862F0</code></td>
-            <td>Main character, animation set 0 (standing, walking right)</td>
+            <td class="td-name"><code>Blupi000</code></td><td>2</td><td><code>blupi000.blp</code></td><td><code>0x862F0</code></td>
+            <td>Main character set 0 — standing, walking right; also used to draw the start-position indicator</td>
           </tr>
           <tr>
-            <td class="td-name"><code>Explo</code></td>
-            <td>9</td>
-            <td><code>explo.blp</code></td>
-            <td><code>0x894F8</code></td>
-            <td>Explosion animation frames</td>
+            <td class="td-name"><code>Explo</code></td><td>9</td><td><code>explo.blp</code></td><td><code>0x894F8</code></td>
+            <td>Explosion animation frames; shared by all explosion item types</td>
           </tr>
           <tr>
-            <td class="td-name"><code>Element</code></td>
-            <td>10</td>
-            <td><code>element.blp</code></td>
-            <td><code>0x88768</code></td>
-            <td>Environmental elements, interactive objects</td>
+            <td class="td-name"><code>Element</code></td><td>10</td><td><code>element.blp</code></td><td><code>0x88768</code></td>
+            <td>Environmental elements: hazards, interactive objects, decoration sprites</td>
           </tr>
           <tr>
-            <td class="td-name"><code>Blupi001</code></td>
-            <td>11</td>
-            <td><code>blupi001.blp</code></td>
-            <td><code>0x862F0</code></td>
-            <td>Main character, animation set 1 (walking left / mirrored)</td>
+            <td class="td-name"><code>Blupi001</code></td><td>11</td><td><code>blupi001.blp</code></td><td><code>0x862F0</code></td>
+            <td>Character variant 1 — walking left / mirrored frames; shares <code>BlupiTiles</code> metadata</td>
           </tr>
           <tr>
-            <td class="td-name"><code>Blupi002</code></td>
-            <td>12</td>
-            <td><code>blupi002.blp</code></td>
-            <td><code>0x862F0</code></td>
-            <td>Main character, animation set 2 (jumping, climbing)</td>
+            <td class="td-name"><code>Blupi002</code></td><td>12</td><td><code>blupi002.blp</code></td><td><code>0x862F0</code></td>
+            <td>Character variant 2 — jumping, climbing; shares <code>BlupiTiles</code> metadata</td>
           </tr>
           <tr>
-            <td class="td-name"><code>Blupi003</code></td>
-            <td>13</td>
-            <td><code>blupi003.blp</code></td>
-            <td><code>0x862F0</code></td>
-            <td>Main character, animation set 3 (special actions)</td>
+            <td class="td-name"><code>Blupi003</code></td><td>13</td><td><code>blupi003.blp</code></td><td><code>0x862F0</code></td>
+            <td>Character variant 3 — special actions; shares <code>BlupiTiles</code> metadata</td>
           </tr>
         </tbody>
       </table>
@@ -139,90 +129,98 @@ IMAGE16/ or IMAGE08/
 
     <div class="callout callout-info">
       <span class="callout-icon">&#8505;</span>
-      <p>All four Blupi sprite variants share the same <code>BlupiTiles</code> metadata (read once from <code>0x862F0</code>), but each uses a different BMP sheet (blupi000–003). The offset array defines the same frame layout for all variants.</p>
+      <p>All four Blupi variants (Blupi000–Blupi003) share the same <code>BlupiTiles</code> metadata array read from <code>0x862F0</code>. Only the source BMP differs. This means all four sheets have the same number of frames and identical frame dimensions — the metadata describes the universal frame layout, and the art varies between sheets.</p>
     </div>
 
     <h2 id="tileinfo">TileInfo Structure</h2>
     <p>File: <code>BlupiEdit/LevelData.cs</code></p>
 
-    <p><code>TileInfo</code> describes a single sprite frame: where to cut it from the source bitmap, and the draw offset to apply when rendering. Each record is <strong>10 bytes</strong>.</p>
+    <p><code>TileInfo</code> describes one sprite frame: the rectangle to cut from the source bitmap and the draw offset to apply at render time. Each record is exactly <strong>12 bytes</strong> (6 × int16).</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Field</th><th>Type</th><th>Size</th><th>Description</th></tr></thead>
+        <thead><tr><th>Property</th><th>CLR Type</th><th>Bytes</th><th>Description</th></tr></thead>
         <tbody>
           <tr>
             <td class="td-name"><code>Location</code></td>
             <td class="td-type">Rectangle</td>
-            <td>6 B (3 × int16)</td>
+            <td>8 B (4 × int16)</td>
             <td>
-              Read as: <code>X</code> (int16), <code>Y</code> (int16), then <code>Width</code> (int16) + <code>Height</code> (int16) from a separate read — so really 8 bytes for the rectangle position + size, but stored as Point + Size
+              Source crop rectangle in the sprite sheet. <strong>Not stored contiguously</strong>: X and Y are at bytes 0–3; Width and Height are at bytes 8–11 (interleaved with <code>Offset</code>). Assembled from two separate reads.
             </td>
           </tr>
           <tr>
             <td class="td-name"><code>Offset</code></td>
             <td class="td-type">Point</td>
             <td>4 B (2 × int16)</td>
-            <td>Draw offset applied when rendering: <code>drawX = posX + Offset.X</code>, same for Y</td>
+            <td>Draw offset applied when rendering. The sprite is drawn at <code>worldPos + Offset</code> rather than exactly at <code>worldPos</code>. Allows the sprite to extend beyond the tile grid square.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <p>Binary layout of one TileInfo record:</p>
+    <h3 id="tileinfo-memory">Binary Layout (12 bytes per record)</h3>
+
+    <p>The fields are stored in this exact order in the EXE — note that <code>Location.X</code> and <code>Location.Y</code> come before <code>Offset</code>, and then <code>Location.Width</code> and <code>Location.Height</code> follow after. The Rectangle is built from two separate reads with Offset in between.</p>
 
     <div class="table-wrap">
       <table class="offset-table">
-        <thead><tr><th>Byte</th><th>Field</th><th>Type</th></tr></thead>
+        <thead><tr><th>Bytes</th><th>Field</th><th>CLR type</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>0–1</td><td><code>Location.X</code></td><td>int16</td></tr>
-          <tr><td>2–3</td><td><code>Location.Y</code></td><td>int16</td></tr>
-          <tr><td>4–5</td><td><code>Offset.X</code></td><td>int16</td></tr>
-          <tr><td>6–7</td><td><code>Offset.Y</code></td><td>int16</td></tr>
-          <tr><td>8–9</td><td><code>Location.Width</code></td><td>int16</td></tr>
-          <tr><td>10–11</td><td><code>Location.Height</code></td><td>int16</td></tr>
+          <tr class="row-known"><td>0–1</td><td><code>Location.X</code></td><td>int16 LE</td><td>Left edge of source rectangle in sprite sheet</td></tr>
+          <tr class="row-known"><td>2–3</td><td><code>Location.Y</code></td><td>int16 LE</td><td>Top edge of source rectangle in sprite sheet</td></tr>
+          <tr class="row-tiles"><td>4–5</td><td><code>Offset.X</code></td><td>int16 LE</td><td>Horizontal draw offset (added to world X before drawing)</td></tr>
+          <tr class="row-tiles"><td>6–7</td><td><code>Offset.Y</code></td><td>int16 LE</td><td>Vertical draw offset (added to world Y before drawing)</td></tr>
+          <tr class="row-known"><td>8–9</td><td><code>Location.Width</code></td><td>int16 LE</td><td>Width of source rectangle</td></tr>
+          <tr class="row-known"><td>10–11</td><td><code>Location.Height</code></td><td>int16 LE</td><td>Height of source rectangle</td></tr>
         </tbody>
       </table>
     </div>
 
+    <p>Constructor source:</p>
     <pre><code><span class="kw">public</span> <span class="fn">TileInfo</span>(<span class="ty">BinaryReader</span> reader)
 {
-    <span class="ty">Point</span> loc = <span class="kw">new</span> <span class="ty">Point</span>(reader.ReadInt16(), reader.ReadInt16()); <span class="cm">// X, Y</span>
-    Offset   = <span class="kw">new</span> <span class="ty">Point</span>(reader.ReadInt16(), reader.ReadInt16()); <span class="cm">// drawOffX, drawOffY</span>
+    <span class="ty">Point</span> loc = <span class="kw">new</span> <span class="ty">Point</span>(reader.ReadInt16(), reader.ReadInt16()); <span class="cm">// bytes 0–3: X, Y</span>
+    Offset   = <span class="kw">new</span> <span class="ty">Point</span>(reader.ReadInt16(), reader.ReadInt16()); <span class="cm">// bytes 4–7: OffX, OffY</span>
     Location = <span class="kw">new</span> <span class="ty">Rectangle</span>(loc, <span class="kw">new</span> <span class="ty">Size</span>(
-        reader.ReadInt16(),  <span class="cm">// Width</span>
-        reader.ReadInt16()   <span class="cm">// Height</span>
+        reader.ReadInt16(),  <span class="cm">// bytes 8–9: Width</span>
+        reader.ReadInt16()   <span class="cm">// bytes 10–11: Height</span>
     ));
 }
 
-<span class="cm">// An array starts with a count (int16) followed by that many records</span>
+<span class="cm">// Each array in the EXE is prefixed by a 2-byte count</span>
 <span class="kw">public static</span> <span class="ty">TileInfo</span>[] <span class="fn">Read</span>(<span class="ty">Stream</span> stream)
 {
     <span class="ty">BinaryReader</span> reader = <span class="kw">new</span> <span class="ty">BinaryReader</span>(stream);
-    <span class="ty">TileInfo</span>[] result = <span class="kw">new</span> <span class="ty">TileInfo</span>[reader.ReadInt16()]; <span class="cm">// count</span>
+    <span class="ty">TileInfo</span>[] result = <span class="kw">new</span> <span class="ty">TileInfo</span>[reader.ReadInt16()]; <span class="cm">// int16 count at array start</span>
     <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nu">0</span>; i &lt; result.Length; i++)
         result[i] = <span class="kw">new</span> <span class="ty">TileInfo</span>(reader);
     <span class="kw">return</span> result;
 }</code></pre>
 
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>Each tile array in the EXE is prefixed by an <code>int16</code> frame count. Seeking to the hard-coded EXE offset puts the stream at this count. <code>TileInfo.Read()</code> reads the count, then reads exactly that many 12-byte records consecutively.</p>
+    </div>
+
     <h2 id="sprite">Sprite Structure</h2>
     <p>File: <code>BlupiEdit/LevelData.cs</code></p>
 
-    <p><code>Sprite</code> is a value type (<code>struct</code>) that pairs a <code>Bitmap</code> with its draw offset. It is created once during <code>LoadGame()</code> by cloning a rectangle from the source sheet.</p>
+    <p><code>Sprite</code> is a <code>struct</code> (value type) that pairs a <code>Bitmap</code> with its draw offset. Each <code>Sprite</code> is created once during <code>LoadGame()</code> by cloning one sub-rectangle from the full sprite sheet bitmap.</p>
 
     <div class="table-wrap">
       <table>
         <thead><tr><th>Member</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td class="td-name"><code>Image</code></td><td class="td-type">Bitmap</td><td>The cropped sprite bitmap (owns its pixel data)</td></tr>
-          <tr><td class="td-name"><code>Offset</code></td><td class="td-type">Point</td><td>Draw offset: added to the world position before drawing</td></tr>
-          <tr><td class="td-name"><code>X</code> / <code>Y</code></td><td class="td-type">int</td><td>Shortcut accessors for <code>Offset.X</code> / <code>Offset.Y</code></td></tr>
-          <tr><td class="td-name"><code>Width</code> / <code>Height</code></td><td class="td-type">int</td><td>Delegates to <code>Image.Width</code> / <code>Image.Height</code></td></tr>
-          <tr><td class="td-name"><code>Size</code></td><td class="td-type">Size</td><td><code>Image.Size</code></td></tr>
-          <tr><td class="td-name"><code>Left</code> / <code>Top</code></td><td class="td-type">int</td><td>Equals <code>Offset.X</code> / <code>Offset.Y</code></td></tr>
-          <tr><td class="td-name"><code>Right</code></td><td class="td-type">int</td><td><code>Offset.X + Image.Width</code></td></tr>
-          <tr><td class="td-name"><code>Bottom</code></td><td class="td-type">int</td><td><code>Offset.Y + Image.Height</code></td></tr>
-          <tr><td class="td-name"><code>Bounds</code></td><td class="td-type">Rectangle</td><td><code>Rectangle(Offset, Size)</code></td></tr>
+          <tr><td class="td-name"><code>Image</code></td><td class="td-type">Bitmap</td><td>The cropped sprite bitmap. Owns its pixel data — allocated by <code>bmp.Clone()</code>.</td></tr>
+          <tr><td class="td-name"><code>Offset</code></td><td class="td-type">Point</td><td>Draw offset added to the world position before <code>DrawImage</code>.</td></tr>
+          <tr><td class="td-name"><code>X</code> / <code>Y</code></td><td class="td-type">int { get; set; }</td><td>Shortcut accessors for <code>Offset.X</code> / <code>Offset.Y</code>.</td></tr>
+          <tr><td class="td-name"><code>Width</code> / <code>Height</code></td><td class="td-type">int { get; }</td><td>Delegates to <code>Image.Width</code> / <code>Image.Height</code>.</td></tr>
+          <tr><td class="td-name"><code>Size</code></td><td class="td-type">Size { get; }</td><td><code>Image.Size</code>.</td></tr>
+          <tr><td class="td-name"><code>Left</code> / <code>Top</code></td><td class="td-type">int { get; }</td><td>Same as <code>Offset.X</code> / <code>Offset.Y</code>.</td></tr>
+          <tr><td class="td-name"><code>Right</code></td><td class="td-type">int { get; }</td><td><code>Offset.X + Image.Width</code>.</td></tr>
+          <tr><td class="td-name"><code>Bottom</code></td><td class="td-type">int { get; }</td><td><code>Offset.Y + Image.Height</code>.</td></tr>
+          <tr><td class="td-name"><code>Bounds</code></td><td class="td-type">Rectangle { get; }</td><td><code>new Rectangle(Offset, Size)</code>.</td></tr>
         </tbody>
       </table>
     </div>
@@ -238,50 +236,63 @@ IMAGE16/ or IMAGE08/
 
     <div class="callout callout-warn">
       <span class="callout-icon">&#9888;</span>
-      <p><code>Sprite</code> is a <strong>struct</strong>, so it is copied by value. However, <code>Bitmap</code> is a reference type — copying a Sprite does NOT deep-copy the bitmap. Use the copy constructor <code>new Sprite(sprite)</code> when you need an independent copy.</p>
+      <p><code>Sprite</code> is a <strong>struct</strong> and copies by value, but <code>Bitmap</code> is a reference type. Copying a <code>Sprite</code> copies the <em>reference</em> to the same bitmap — both copies share the same pixels. Use the copy constructor <code>new Sprite(sprite)</code> only when you need an independent bitmap clone.</p>
     </div>
 
     <h2 id="extraction">EXE Graphic Extraction</h2>
 
-    <p>The complete loading pipeline in <code>LevelData.LoadGame()</code>:</p>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> — <code>LevelData.LoadGame()</code></p>
 
-    <pre><code><span class="kw">using</span> (<span class="ty">FileStream</span> fs = File.OpenRead(filename))
+    <p>The complete loading pipeline performs two phases: metadata extraction from the EXE, then bitmap extraction from the sprite sheets.</p>
+
+    <pre><code><span class="kw">public static void</span> <span class="fn">LoadGame</span>(<span class="kw">string</span> filename)
 {
-    <span class="cm">// Step 1: Read TileInfo metadata from hard-coded EXE offsets</span>
-    fs.Seek(<span class="nu">0x862F0</span>, SeekOrigin.Begin);
-    BlupiTiles   = TileInfo.Read(fs);    <span class="cm">// count + records</span>
-    fs.Seek(<span class="nu">0x872B8</span>, SeekOrigin.Begin);
-    ObjectTiles  = TileInfo.Read(fs);
-    fs.Seek(<span class="nu">0x88768</span>, SeekOrigin.Begin);
-    ElementTiles = TileInfo.Read(fs);
-    fs.Seek(<span class="nu">0x894F8</span>, SeekOrigin.Begin);
-    ExploTiles   = TileInfo.Read(fs);
-}  <span class="cm">// fs closed here</span>
+    gameBaseDirectory = Path.GetDirectoryName(Path.GetFullPath(filename));
 
-<span class="cm">// Step 2: For each tile type, load the BMP sheet and clone individual frames</span>
-TileImages = <span class="kw">new</span> <span class="ty">Dictionary</span>&lt;<span class="ty">TileTypes</span>, <span class="ty">Sprite</span>[]&gt;();
+    <span class="cm">// ── Phase 1: read TileInfo arrays from hard-coded EXE offsets ──────────</span>
+    <span class="kw">using</span> (<span class="ty">FileStream</span> fs = File.OpenRead(filename))
+    {
+        fs.Seek(<span class="nu">0x862F0</span>, SeekOrigin.Begin);
+        BlupiTiles   = TileInfo.Read(fs);   <span class="cm">// int16 count + N × 12-byte records</span>
+        fs.Seek(<span class="nu">0x872B8</span>, SeekOrigin.Begin);
+        ObjectTiles  = TileInfo.Read(fs);
+        fs.Seek(<span class="nu">0x88768</span>, SeekOrigin.Begin);
+        ElementTiles = TileInfo.Read(fs);
+        fs.Seek(<span class="nu">0x894F8</span>, SeekOrigin.Begin);
+        ExploTiles   = TileInfo.Read(fs);
+    }  <span class="cm">// fs closed — EXE no longer needed after this point</span>
 
-<span class="cm">// Blupi variants reuse BlupiTiles metadata, different BMP each time</span>
-<span class="kw">foreach</span> (<span class="kw">var</span> (typeName, tileInfo) <span class="kw">in</span> new[] {
-    (<span class="st">"blupi000"</span>, BlupiTiles,  TileTypes.Blupi000),
-    (<span class="st">"blupi001"</span>, BlupiTiles,  TileTypes.Blupi001),
-    (<span class="st">"blupi002"</span>, BlupiTiles,  TileTypes.Blupi002),
-    (<span class="st">"blupi003"</span>, BlupiTiles,  TileTypes.Blupi003),
-    (<span class="st">"object"</span>,   ObjectTiles,  TileTypes.Object),
-    (<span class="st">"element"</span>,  ElementTiles, TileTypes.Element),
-    (<span class="st">"explo"</span>,    ExploTiles,   TileTypes.Explo),
-})
-{
-    <span class="kw">var</span> sprites = <span class="kw">new</span> <span class="ty">List</span>&lt;<span class="ty">Sprite</span>&gt;(tileInfo.Length);
-    <span class="kw">using</span> (<span class="ty">Bitmap</span> bmp = <span class="fn">LoadImage</span>(typeName))  <span class="cm">// disposed after each loop</span>
-        <span class="kw">foreach</span> (<span class="ty">TileInfo</span> t <span class="kw">in</span> tileInfo)
-            sprites.Add(<span class="kw">new</span> <span class="ty">Sprite</span>(bmp.Clone(t.Location, bmp.PixelFormat), t.Offset));
-    TileImages.Add(type, sprites.ToArray());
+    <span class="cm">// ── Phase 2: cut sprites from BMP sheets ─────────────────────────────</span>
+    TileImages = <span class="kw">new</span> <span class="ty">Dictionary</span>&lt;<span class="ty">TileTypes</span>, <span class="ty">Sprite</span>[]&gt;();
+
+    <span class="cm">// All 4 Blupi variants share BlupiTiles metadata; each has its own BMP</span>
+    <span class="ty">List</span>&lt;<span class="ty">Sprite</span>&gt; tmp;
+
+    tmp = <span class="kw">new</span> <span class="ty">List</span>&lt;<span class="ty">Sprite</span>&gt;(BlupiTiles.Length);
+    <span class="kw">using</span> (<span class="ty">Bitmap</span> bmp = <span class="fn">LoadImage</span>(<span class="st">"blupi000"</span>))   <span class="cm">// sheet loaded, used, disposed</span>
+        <span class="kw">foreach</span> (<span class="ty">TileInfo</span> t <span class="kw">in</span> BlupiTiles)
+            tmp.Add(<span class="kw">new</span> <span class="ty">Sprite</span>(bmp.Clone(t.Location, bmp.PixelFormat), t.Offset));
+    TileImages.Add(TileTypes.Blupi000, tmp.ToArray());
+
+    <span class="cm">// ... same pattern for blupi001, blupi002, blupi003 ...</span>
+
+    tmp = <span class="kw">new</span> <span class="ty">List</span>&lt;<span class="ty">Sprite</span>&gt;(ObjectTiles.Length);
+    <span class="kw">using</span> (<span class="ty">Bitmap</span> bmp = <span class="fn">LoadImage</span>(<span class="st">"object"</span>))
+        <span class="kw">foreach</span> (<span class="ty">TileInfo</span> t <span class="kw">in</span> ObjectTiles)
+            tmp.Add(<span class="kw">new</span> <span class="ty">Sprite</span>(bmp.Clone(t.Location, bmp.PixelFormat), t.Offset));
+    TileImages.Add(TileTypes.Object, tmp.ToArray());
+
+    <span class="cm">// ... same for element, explo ...</span>
 }</code></pre>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>Each sprite sheet BMP is opened, all frames are cloned from it with <code>bmp.Clone(rect, pixelFormat)</code>, and then the sheet is immediately disposed. Only the individual sprite bitmaps remain in memory — the full sprite sheet is never kept alive after loading. This reduces the working set compared to keeping the full sheets.</p>
+    </div>
 
     <h2 id="image-dirs">Image Directories</h2>
 
-    <p>BlupiEdit searches for BMP files in two directories relative to the game EXE:</p>
+    <p>BlupiEdit looks for BMP files in two subdirectories relative to <code>BLUPI.EXE</code>:</p>
 
     <div class="table-wrap">
       <table>
@@ -290,88 +301,116 @@ TileImages = <span class="kw">new</span> <span class="ty">Dictionary</span>&lt;<
           <tr>
             <td><code>IMAGE16/</code></td>
             <td>First (preferred)</td>
-            <td>16-colour (4-bit) bitmap variants — smaller files, original art style</td>
+            <td>16-colour (4-bit) bitmap art — original game art style. Smaller files.</td>
           </tr>
           <tr>
             <td><code>IMAGE08/</code></td>
             <td>Fallback</td>
-            <td>8-colour (3-bit) or palette-based variants — used when IMAGE16 is absent</td>
+            <td>Palette-based / 8-colour variant. Used only if IMAGE16 directory or file is absent.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <pre><code><span class="kw">public static</span> <span class="ty">Bitmap</span> <span class="fn">LoadImage</span>(<span class="ty">string</span> filename)
+    <pre><code><span class="kw">public static</span> <span class="ty">Bitmap</span> <span class="fn">LoadImage</span>(<span class="kw">string</span> filename)
 {
     <span class="kw">string</span> image16 = <span class="fn">FindPathCaseInsensitive</span>(<span class="fn">GamePath</span>(<span class="st">"IMAGE16"</span>, filename + <span class="st">".blp"</span>));
     <span class="kw">string</span> image08 = <span class="fn">FindPathCaseInsensitive</span>(<span class="fn">GamePath</span>(<span class="st">"IMAGE08"</span>, filename + <span class="st">".blp"</span>));
 
     <span class="kw">string</span> path = File.Exists(image16) ? image16
                 : File.Exists(image08) ? image08
-                : <span class="kw">throw new</span> <span class="ty">FileNotFoundException</span>(<span class="st">"Image not found"</span>);
+                : <span class="kw">throw new</span> <span class="ty">FileNotFoundException</span>(<span class="st">"Image not found: "</span> + image16);
 
     <span class="ty">Bitmap</span> bmp = <span class="kw">new</span> <span class="ty">Bitmap</span>(path);
-    bmp.MakeTransparent(<span class="ty">Color</span>.Blue);  <span class="cm">// chroma-key #0000FF → transparent</span>
+    bmp.MakeTransparent(<span class="ty">Color</span>.Blue);  <span class="cm">// chroma-key: exact #0000FF → alpha=0</span>
     <span class="kw">return</span> bmp;
 }</code></pre>
 
     <div class="callout callout-info">
       <span class="callout-icon">&#8505;</span>
-      <p>Despite the <code>.blp</code> extension, image files are standard Windows BMP format. The extension is shared with level files — context (directory) determines the file type.</p>
+      <p>Despite the <code>.blp</code> extension, sprite sheets are standard Windows BMP files. The <code>.blp</code> extension is shared with level files — the game and editor distinguish them by directory (<code>IMAGE16/</code>, <code>IMAGE08/</code> for graphics; <code>data/</code> for levels).</p>
     </div>
 
-    <h2 id="transparency">Transparency — Chroma Key</h2>
+    <h2 id="memory-model">Memory Model</h2>
 
-    <p>Speedy Blupi II uses <strong>pure blue (#0000FF)</strong> as the transparency colour. This was a common technique before alpha channels were widely supported — the game's own renderer replaced that colour with the background.</p>
+    <p>After <code>LoadGame()</code> completes, the static <code>LevelData.TileImages</code> dictionary holds all sprite data for the entire session:</p>
 
-    <p>BlupiEdit calls <code>Bitmap.MakeTransparent(Color.Blue)</code> which:</p>
+    <pre><code>LevelData.TileImages : Dictionary&lt;TileTypes, Sprite[]&gt;
+
+TileImages[TileTypes.Object]   → Sprite[N]  (N = ObjectTiles.Length)
+TileImages[TileTypes.Blupi000] → Sprite[M]  (M = BlupiTiles.Length)
+TileImages[TileTypes.Blupi001] → Sprite[M]  (same M, different bitmaps)
+TileImages[TileTypes.Blupi002] → Sprite[M]
+TileImages[TileTypes.Blupi003] → Sprite[M]
+TileImages[TileTypes.Element]  → Sprite[K]
+TileImages[TileTypes.Explo]    → Sprite[J]
+
+Each Sprite.Image is an independently owned Bitmap.
+Total memory ≈ sum of all individual sprite pixel areas × bytes-per-pixel.</code></pre>
+
+    <p>Sprites are never unloaded during normal operation. The dictionary is replaced in full if <code>LoadGame()</code> is called again. Old sprites are abandoned for GC collection (GDI+ bitmaps are unmanaged resources — if this becomes a concern, explicit <code>Dispose()</code> on the old entries would be needed before replacement).</p>
+
+    <h2 id="transparency">Chroma-Key Transparency</h2>
+
+    <p>Speedy Blupi II uses <strong>pure blue (#0000FF)</strong> as the background colour in its sprite sheets. This was a common technique before alpha channels were widely supported in 16-bit graphics hardware.</p>
+
+    <p>BlupiEdit calls <code>Bitmap.MakeTransparent(Color.Blue)</code> immediately after loading each BMP, which:</p>
     <ol>
-      <li>Converts the bitmap to 32-bit ARGB format internally</li>
-      <li>Sets the alpha channel to 0 for every pixel exactly matching <code>Color.Blue</code></li>
-      <li>Leaves all other pixels fully opaque</li>
+      <li>Converts the bitmap internally to 32-bit ARGB format.</li>
+      <li>Sets <code>alpha = 0</code> for every pixel whose RGB value is exactly <code>(0, 0, 255)</code>.</li>
+      <li>Leaves all other pixels fully opaque (<code>alpha = 255</code>).</li>
     </ol>
+
+    <p>This transparency is preserved when frames are cloned with <code>bmp.Clone()</code> — the resulting sprite bitmaps are also 32-bit ARGB with transparent pixels in place of the blue background.</p>
 
     <div class="callout callout-warn">
       <span class="callout-icon">&#9888;</span>
-      <p>Only <em>exact</em> #0000FF matches are made transparent. Pixels that are nearly-blue but not exactly <code>R=0, G=0, B=255</code> remain opaque. This can cause visible blue fringing around sprites if the original art used anti-aliasing (it generally does not).</p>
+      <p>Only <em>exact</em> <code>R=0, G=0, B=255</code> pixels are made transparent. Near-blue pixels that differ by even one channel value remain fully opaque. Speedy Blupi II art was designed without anti-aliasing, so this exact match is reliable — any blue fringing would indicate a non-original or re-encoded BMP.</p>
     </div>
 
     <h2 id="rendering">Rendering Pipeline</h2>
 
-    <p>The full rendering flow for one panel repaint:</p>
+    <p>Both <code>tilePanel_Paint</code> and <code>objectPanel_Paint</code> follow this sequence on each <code>Paint</code> event:</p>
 
-    <pre><code><span class="fn">panel_Paint</span>(sender, PaintEventArgs e)
+    <pre><code>panel_Paint(sender, PaintEventArgs e)
     │
-    ├── gfx.SetOptions()           <span class="cm">// HighSpeed, NearestNeighbor, no AA</span>
+    ├─ 1. gfx.SetOptions()         // HighSpeed compositing, NearestNeighbor, no AA
     │
-    ├── Draw background (decor)
-    │   └── LoadImage("decor{N:000}")   <span class="cm">// loaded fresh each repaint</span>
-    │       └── Tile across panel at half scroll speed (parallax)
+    ├─ 2. Draw background (decor)
+    │     LoadImage("decor{Background:000}")  // loaded fresh — NOT cached
+    │     Tile across panel: origin = (-scrollX/2, -scrollY/2)  [parallax: half speed]
+    │     Step: 640 × 480 px
     │
-    ├── Draw tile grid             <span class="cm">// tilePanel only</span>
-    │   └── for visible (x,y) range:
-    │       └── DrawSprite(TileImages[Object][Tiles[x,y]], screenPos)
+    ├─ 3. Draw tile grid  (tilePanel only)
+    │     Compute visible tile range from scroll offsets
+    │     For each (tx, ty) in range:
+    │         idx = Tiles[tx, ty]          // -1 = empty, skip
+    │         DrawSprite(Object[idx], tx*64 - scrollX, ty*64 - scrollY)
     │
-    ├── Draw Blupi start position  <span class="cm">// tilePanel only</span>
-    │   └── DrawSprite(TileImages[Blupi000][directionIndex], startPos)
+    ├─ 4. Draw Blupi start position  (tilePanel only)
+    │     sprIdx = StartDirections[0] ? 0 : 1  // 0 = facing right, 1 = facing left
+    │     DrawSprite(Blupi000[sprIdx], StartPositions[0] - scroll)
     │
-    └── Draw items
-        └── for each LevelItem:
-            └── DrawSprite(TileImages[item.ArtFile][item.Tile], item.PointA - scroll)</code></pre>
-
-    <div class="callout callout-warn">
-      <span class="callout-icon">&#9888;</span>
-      <p>The background image (<code>decorN.blp</code>) is loaded fresh from disk on every repaint — it is not cached. For large or slow storage, this can cause visible repaints. A future optimisation would cache the current background bitmap.</p>
-    </div>
+    └─ 5. Draw all items
+          For each LevelItem in Items:
+              if ArtFile not in TileImages: skip
+              sprites = TileImages[ArtFile]
+              if Tile >= sprites.Length: skip
+              DrawSprite(sprites[Tile], PointA - scroll)
+              [objectPanel only: if item == selectedItem, draw yellow outline rectangle]</code></pre>
 
     <h2 id="grid">Tile Grid Rendering</h2>
 
-    <p>Only the <strong>visible tile range</strong> is drawn (view-frustum culling):</p>
+    <p>View-frustum culling is applied — only tiles whose screen position is within the panel bounds are processed:</p>
 
-    <pre><code><span class="kw">int</span> xStart = Math.Max(scrollX / <span class="nu">64</span>, <span class="nu">0</span>);
-<span class="kw">int</span> yStart = Math.Max(scrollY / <span class="nu">64</span>, <span class="nu">0</span>);
-<span class="kw">int</span> xEnd   = Math.Min((scrollX + panelW) / <span class="nu">64</span> + <span class="nu">1</span>, <span class="nu">100</span>);
-<span class="kw">int</span> yEnd   = Math.Min((scrollY + panelH) / <span class="nu">64</span> + <span class="nu">1</span>, <span class="nu">100</span>);
+    <pre><code><span class="kw">int</span> scrollX = hScrollBar1.Value;
+<span class="kw">int</span> scrollY = vScrollBar1.Value;
+
+<span class="cm">// Clamp visible tile range to [0, LevelSize)</span>
+<span class="kw">int</span> xStart = Math.Max(scrollX / LevelData.GridSize, <span class="nu">0</span>);
+<span class="kw">int</span> yStart = Math.Max(scrollY / LevelData.GridSize, <span class="nu">0</span>);
+<span class="kw">int</span> xEnd   = Math.Min((scrollX + tilePanel.Width)  / LevelData.GridSize + <span class="nu">1</span>, LevelData.LevelSize);
+<span class="kw">int</span> yEnd   = Math.Min((scrollY + tilePanel.Height) / LevelData.GridSize + <span class="nu">1</span>, LevelData.LevelSize);
 
 <span class="kw">for</span> (<span class="kw">int</span> ty = yStart; ty &lt; yEnd; ty++)
     <span class="kw">for</span> (<span class="kw">int</span> tx = xStart; tx &lt; xEnd; tx++)
@@ -379,13 +418,16 @@ TileImages = <span class="kw">new</span> <span class="ty">Dictionary</span>&lt;<
         <span class="kw">short</span> idx = level.Tiles[tx, ty];
         <span class="kw">if</span> (idx &lt; <span class="nu">0</span> || idx &gt;= objSprites.Length) <span class="kw">continue</span>;  <span class="cm">// -1 = empty</span>
         gfx.<span class="fn">DrawSprite</span>(objSprites[idx],
-            <span class="kw">new</span> <span class="ty">Point</span>(tx * <span class="nu">64</span> - scrollX, ty * <span class="nu">64</span> - scrollY));
+            <span class="kw">new</span> <span class="ty">Point</span>(tx * LevelData.GridSize - scrollX, ty * LevelData.GridSize - scrollY));
     }</code></pre>
 
-    <p>The <code>DrawSprite</code> extension applies the sprite offset:</p>
+    <p>The iteration order is Y-outer / X-inner — one row at a time — matching the visual top-to-bottom, left-to-right rendering. Note that <code>Tiles</code> is stored <strong>x-major (column-major)</strong> in memory, so <code>level.Tiles[tx, ty]</code> is the correct access pattern (column first, row second).</p>
+
+    <p>The <code>DrawSprite</code> extension applies the sprite's offset on top of the grid position:</p>
 
     <pre><code><span class="kw">public static void</span> <span class="fn">DrawSprite</span>(<span class="kw">this</span> <span class="ty">Graphics</span> gfx, <span class="ty">Sprite</span> spr, <span class="ty">Point</span> point)
 {
+    <span class="cm">// Final screen position = tile grid position + sprite draw offset</span>
     gfx.DrawImage(spr.Image,
         point.X + spr.Offset.X,
         point.Y + spr.Offset.Y,
@@ -395,17 +437,65 @@ TileImages = <span class="kw">new</span> <span class="ty">Dictionary</span>&lt;<
 
     <h2 id="background">Background Rendering</h2>
 
-    <p>The background decor images are tiled across the panel. A parallax effect is achieved by scrolling the background at half the speed of the foreground:</p>
+    <p>Background decor images are tiled across the entire panel. A parallax effect is achieved by scrolling the background at <strong>half the speed</strong> of the foreground:</p>
 
     <pre><code><span class="kw">using</span> (<span class="ty">Bitmap</span> bg = LevelData.<span class="fn">LoadImage</span>(<span class="st">$"decor{level.Background:000}"</span>))
 {
-    <span class="cm">// Background scrolls at half speed → parallax effect</span>
+    <span class="cm">// Origin is negative so the background is already drawn before pixel 0</span>
     <span class="kw">for</span> (<span class="kw">int</span> x = -scrollX / <span class="nu">2</span>; x &lt; panel.Width + <span class="nu">640</span>; x += <span class="nu">640</span>)
         <span class="kw">for</span> (<span class="kw">int</span> y = -scrollY / <span class="nu">2</span>; y &lt; panel.Height + <span class="nu">480</span>; y += <span class="nu">480</span>)
             gfx.DrawImage(bg, x, y, bg.Width, bg.Height);
-}  <span class="cm">// bg disposed after each paint</span></code></pre>
+}  <span class="cm">// bg disposed after each repaint</span></code></pre>
 
-    <p>Background tiles are assumed to be <strong>640×480 pixels</strong>. The tiling starts before position 0 (at <code>-scrollX/2</code>) so the seam is never visible.</p>
+    <p>Key details:</p>
+    <ul>
+      <li>Background images are assumed to be <strong>640×480 pixels</strong>.</li>
+      <li>Tiling starts at <code>-scrollX/2</code> (not 0) so the seam never appears at the left edge.</li>
+      <li>The extra <code>+640</code>/<code>+480</code> in the loop bounds ensures the rightmost and bottom tiles are drawn even if partially off-screen.</li>
+      <li>The background BMP is <strong>loaded from disk on every repaint</strong> — it is not cached between frames. This is a known limitation: on slow storage, it can cause a visible repaint delay.</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">&#9888;</span>
+      <p>The background is reloaded on every <code>Paint</code> call. If you modify the scroll offset rapidly, this reads the background file many times per second. Caching the current background <code>Bitmap</code> and invalidating it only when <code>Background</code> changes would improve performance significantly.</p>
+    </div>
+
+    <h2 id="coordinate-system">Coordinate System</h2>
+
+    <p>BlupiEdit uses a pixel-based world coordinate system:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concept</th><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Tile size</td><td>64 × 64 px</td><td><code>LevelData.GridSize = 64</code></td></tr>
+          <tr><td>Grid size</td><td>100 × 100 tiles</td><td><code>LevelData.LevelSize = 100</code></td></tr>
+          <tr><td>World size</td><td>6400 × 6400 px</td><td><code>LevelData.PixelSize = 6400</code></td></tr>
+          <tr><td>Tile → world</td><td><code>worldX = tileX × 64</code></td><td>Top-left corner of tile at grid column <code>tileX</code></td></tr>
+          <tr><td>World → screen</td><td><code>screenX = worldX − scrollX</code></td><td>Subtract scroll offset to get panel-local coordinates</td></tr>
+          <tr><td>Screen → world (click)</td><td><code>worldX = screenX + scrollX</code></td><td>Used in <code>objectPanel_MouseClick</code> hit-test</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Item positions (<code>PointA</code>, <code>PointB</code>, <code>PointC</code>, start positions) are all stored and rendered in <strong>world pixel coordinates</strong>. Tile indices are in tile coordinates. The relationship:</p>
+    <pre><code>tileX × 64 = world X of tile top-left corner
+item.PointA = {worldX, worldY}  in pixels
+screenPos  = item.PointA - new Size(scrollX, scrollY)</code></pre>
+
+    <p>The hit-test in <code>objectPanel_MouseClick</code> converts the click to world space and then uses squared Euclidean distance with a threshold of <code>GridSize² = 4096</code> (64 px radius) to find the nearest item:</p>
+    <pre><code><span class="ty">Point</span> clickWorld = <span class="kw">new</span> <span class="ty">Point</span>(e.X + scrollX, e.Y + scrollY);
+<span class="kw">foreach</span> (<span class="ty">LevelItem</span> item <span class="kw">in</span> level.Items)
+{
+    <span class="kw">int</span> dx = item.PointA.X - clickWorld.X;
+    <span class="kw">int</span> dy = item.PointA.Y - clickWorld.Y;
+    <span class="kw">int</span> dist = dx*dx + dy*dy;  <span class="cm">// squared distance — no sqrt needed</span>
+    <span class="kw">if</span> (dist &lt; bestDist &amp;&amp; dist &lt; (LevelData.GridSize * LevelData.GridSize))
+    {
+        best = item;
+        bestDist = dist;
+    }
+}</code></pre>
 
   </main>
 </div>
