@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlupiEdit – Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">B</div>
+    BlupiEdit
+  </a>
+  <nav>
+    <a href="index.html" class="active">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+  </nav>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h4>On this page</h4>
+      <a href="#what-is">What is BlupiEdit?</a>
+      <a href="#getting-started">Quick Start</a>
+      <a href="#features">Features</a>
+      <a href="#requirements">Requirements</a>
+      <a href="#file-overview">File Overview</a>
+      <a href="#workflow">Workflow Diagram</a>
+      <a href="#keyboard">Keyboard Shortcuts</a>
+      <a href="#limitations">Known Limitations</a>
+    </div>
+    <div class="sidebar-section">
+      <h4>Other pages</h4>
+      <a href="architecture.html">Code Architecture</a>
+      <a href="file-format.html">.blp File Format</a>
+      <a href="items.html">Game Object Types</a>
+      <a href="tiles.html">Tiles, Sprite, TileInfo</a>
+      <a href="classes.html">API Reference</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>BlupiEdit</h1>
+      <p class="subtitle">A level editor for <strong>Speedy Blupi II</strong> (Eggbert 2) — an open-source C# tool for creating and modifying game levels.</p>
+      <div class="badges">
+        <span class="badge badge-blue">C# / .NET</span>
+        <span class="badge badge-yellow">Windows Forms</span>
+        <span class="badge badge-green">Open Source</span>
+        <span class="badge badge-red">Speedy Blupi II</span>
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <a class="card" href="architecture.html">
+        <div class="card-icon">&#128736;</div>
+        <h3>Architecture</h3>
+        <p>Project structure, class diagram, and data flow between components</p>
+      </a>
+      <a class="card" href="file-format.html">
+        <div class="card-icon">&#128196;</div>
+        <h3>BLP Format</h3>
+        <p>Complete specification of the binary level file format with byte offsets</p>
+      </a>
+      <a class="card" href="items.html">
+        <div class="card-icon">&#127381;</div>
+        <h3>Item Types</h3>
+        <p>All game objects: enemies, collectibles, platforms, explosions, and more</p>
+      </a>
+      <a class="card" href="tiles.html">
+        <div class="card-icon">&#129695;</div>
+        <h3>Tiles &amp; Sprites</h3>
+        <p>Tile system, Sprite struct, TileInfo, and data extraction from the EXE</p>
+      </a>
+      <a class="card" href="classes.html">
+        <div class="card-icon">&#128214;</div>
+        <h3>API Reference</h3>
+        <p>Documentation of all public classes, properties, and methods</p>
+      </a>
+    </div>
+
+    <h2 id="what-is">What is BlupiEdit?</h2>
+
+    <p>BlupiEdit is a level editor for the classic platformer <strong>Speedy Blupi II</strong> (known as <em>Eggbert 2</em> in some regions). It allows you to load, view, and edit level files (<code>.blp</code>) that ship with the original 1997 game.</p>
+
+    <p>The project is written in <strong>C#</strong> as a <strong>Windows Forms</strong> application targeting .NET. It works directly with binary data from the original game executable (<code>BLUPI.EXE</code>) — extracting tile graphics and sprite metadata without requiring any modification to the game itself.</p>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>BlupiEdit is a reverse-engineered tool. All documentation of the .blp format and EXE offsets was obtained by analysing the original game binary.</p>
+    </div>
+
+    <h2 id="getting-started">Quick Start</h2>
+
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="open">Open Game</button>
+        <button class="tab-btn" data-tab="edit">Edit Level</button>
+        <button class="tab-btn" data-tab="save">Save</button>
+      </div>
+
+      <div class="tab-panel active" data-panel="open">
+        <h4>Step 1 — Open the game</h4>
+        <ol>
+          <li>Launch <code>BlupiEdit.exe</code></li>
+          <li>Choose <strong>File → Open</strong> from the menu</li>
+          <li>Navigate to your Speedy Blupi II directory and select <code>BLUPI.EXE</code></li>
+          <li>BlupiEdit extracts all tile graphics and enables the <em>Change Level</em> menu item</li>
+        </ol>
+        <div class="callout callout-warn">
+          <span class="callout-icon">&#9888;</span>
+          <p>The EXE file is never modified — graphic extraction is a read-only operation.</p>
+        </div>
+        <p>You can also pass the EXE path as a command-line argument to skip the Open dialog:</p>
+        <pre><code>BlupiEdit.exe "C:\Games\SpeedyBlupiII\BLUPI.EXE"</code></pre>
+      </div>
+
+      <div class="tab-panel" data-panel="edit">
+        <h4>Step 2 — Browse and open a level</h4>
+        <ol>
+          <li>Choose <strong>Level → Change Level</strong></li>
+          <li>Select a level set in the left list (World or User 1–8)</li>
+          <li>Pick a level from the level list — a miniature preview renders on the right</li>
+          <li>Click <strong>Open</strong></li>
+        </ol>
+        <h4>Navigating the editor</h4>
+        <ul>
+          <li><strong>Tile Panel</strong> (left canvas) — shows the full 100×100 tile grid with background and scrollbars</li>
+          <li><strong>Object Panel</strong> (right canvas) — shows interactive game objects; click to select</li>
+          <li>Use the scroll bars beneath each panel to pan around the 6400×6400-pixel world</li>
+          <li>Clicking an object in the Object Panel selects it and shows its properties in the Property Grid</li>
+        </ul>
+      </div>
+
+      <div class="tab-panel" data-panel="save">
+        <h4>Step 3 — Save the level</h4>
+        <ul>
+          <li><strong>File → Save</strong> — overwrites the current <code>.blp</code> file in place</li>
+          <li><strong>File → Save As</strong> — writes to a different slot (World XXX or User X Design XXX)</li>
+        </ul>
+        <div class="callout callout-danger">
+          <span class="callout-icon">&#9888;</span>
+          <p>Always keep backups! Overwriting original game levels is irreversible.</p>
+        </div>
+        <p>On close, BlupiEdit will ask whether you want to save unsaved changes.</p>
+      </div>
+    </div>
+
+    <h2 id="features">Features</h2>
+
+    <ul>
+      <li><strong>Game EXE loading</strong> — automatic tile graphic extraction from the Speedy Blupi II executable at fixed binary offsets</li>
+      <li><strong>Level browser</strong> — lists all available levels (World + User 1–8 sets) with a live thumbnail preview</li>
+      <li><strong>Tile Panel</strong> — renders the full 100×100 tile grid with parallax background and efficient culling</li>
+      <li><strong>Object Panel</strong> — visualises and allows clicking on game objects; selected item is highlighted in yellow</li>
+      <li><strong>Property Grid</strong> — displays properties of the selected object (<code>LevelItem</code>) or the whole level (<code>LevelViewModel</code>)</li>
+      <li><strong>TileList control</strong> — custom scrollable tile picker with keyboard navigation and drag support</li>
+      <li><strong>Save / Save As</strong> — write levels back to original or new slots</li>
+      <li><strong>Cross-platform paths</strong> — case-insensitive file lookup for Linux/Mono compatibility</li>
+      <li><strong>Command-line support</strong> — pass EXE path as argument to open directly</li>
+      <li><strong>Safe-exit prompt</strong> — asks to save on window close when a level is open</li>
+    </ul>
+
+    <h2 id="requirements">Requirements</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Version / Spec</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="td-name">.NET / Mono</td><td>.NET Framework 4.x or Mono</td><td>Required to run</td></tr>
+          <tr><td class="td-name">OS</td><td>Windows (native), Linux (via Mono)</td><td>WinForms UI</td></tr>
+          <tr><td class="td-name">Speedy Blupi II</td><td>Original BLUPI.EXE</td><td>Source of tile graphics</td></tr>
+          <tr><td class="td-name">RAM</td><td>~50–200 MB</td><td>Depends on number of loaded sprites</td></tr>
+          <tr><td class="td-name">IDE</td><td>Visual Studio / Rider / MonoDevelop</td><td>For development</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="file-overview">Project File Overview</h2>
+
+    <pre><code>BlupiEdit/
+├── BlupiEdit.sln              <span class="cm"># Visual Studio solution</span>
+├── CMakeLists.txt             <span class="cm"># Alternative build system</span>
+└── BlupiEdit/
+    ├── Program.cs             <span class="cm"># Entry point; exposes Arguments[]</span>
+    ├── MainForm.cs            <span class="cm"># Main window — panels, scrollbars, menu</span>
+    ├── MainForm.Designer.cs   <span class="cm"># WinForms generated code</span>
+    ├── LevelData.cs           <span class="cm"># Level load/save, EXE extraction, all data types</span>
+    ├── LevelViewModel.cs      <span class="cm"># PropertyGrid view model for LevelData</span>
+    ├── LevelSelectForm.cs     <span class="cm"># Level browser dialog with preview</span>
+    ├── TileList.cs            <span class="cm"># Custom tile picker user control</span>
+    └── Resources/
+        └── DefaultLevel.blp  <span class="cm"># Embedded default empty level</span></code></pre>
+
+    <h2 id="workflow">Workflow Diagram</h2>
+
+    <pre><code><span class="cm">Application launch</span>
+       │
+       ▼
+  <span class="ty">Program.Main()</span>
+       │  args[0] → optional EXE path
+       ▼
+  <span class="ty">MainForm()</span>  ←── register event handlers
+       │
+       │ File → Open
+       ▼
+  <span class="fn">LevelData.LoadGame(filename)</span>
+       │  ├── Seek to fixed offsets in BLUPI.EXE
+       │  ├── Read TileInfo[] arrays
+       │  ├── Load BMP sheets from IMAGE16/ or IMAGE08/
+       │  └── Clone individual sprites → TileImages dictionary
+       │
+       │ Level → Change Level
+       ▼
+  <span class="ty">LevelSelectForm</span> (modal dialog)
+       │  ├── Enumerate available levels
+       │  └── Render miniature preview
+       │
+       │ Dialog OK
+       ▼
+  <span class="fn">LevelData.LoadLevel(userid, levelnum)</span>
+       │  └── Parse .blp binary → new LevelData instance
+       │
+       ▼
+  <span class="fn">MainForm.RefreshCurrentLevelView()</span>
+       │  ├── Configure scrollbars
+       │  ├── Populate TileList with Object sprites
+       │  ├── Assign LevelViewModel to PropertyGrid
+       │  └── Invalidate both panels → repaint
+       │
+       ▼
+  User interaction loop:
+       ├── Scroll → repaint panels
+       ├── Click in Object Panel → select LevelItem → PropertyGrid
+       └── File → Save → <span class="fn">LevelData.SaveLevel()</span></code></pre>
+
+    <h2 id="keyboard">Keyboard Shortcuts — TileList</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Key</th><th>Action (Vertical)</th><th>Action (Horizontal)</th></tr></thead>
+        <tbody>
+          <tr><td><code>↓</code></td><td>Move down one row</td><td>Move down within column</td></tr>
+          <tr><td><code>↑</code></td><td>Move up one row</td><td>Move up within column</td></tr>
+          <tr><td><code>←</code></td><td>Previous tile</td><td>Move left one column</td></tr>
+          <tr><td><code>→</code></td><td>Next tile</td><td>Move right one column</td></tr>
+          <tr><td><code>Home</code></td><td>First tile</td><td>First tile</td></tr>
+          <tr><td><code>End</code></td><td>Last tile</td><td>Last tile</td></tr>
+          <tr><td><code>Page Up</code></td><td>One page up</td><td>One page left</td></tr>
+          <tr><td><code>Page Down</code></td><td>One page down</td><td>One page right</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="limitations">Known Limitations</h2>
+
+    <ul>
+      <li>Most level properties in the PropertyGrid are <strong>read-only</strong> — in-place editing of tile data is not yet implemented</li>
+      <li>Cannot add or delete objects — only inspection of existing objects is possible</li>
+      <li>Tile painting (placing tiles in the grid) is not implemented</li>
+      <li>Supports only <strong>Speedy Blupi II</strong> — Speedy Blupi I has different EXE offsets</li>
+      <li>Maximum of <strong>200 objects</strong> per level (fixed by the .blp format)</li>
+      <li>Maximum of <strong>8 user collections</strong>, each with up to 20 levels</li>
+      <li>Linux support via Mono is functional but WinForms styling may differ from Windows</li>
+    </ul>
+
+  </main>
+</div>
+
+<footer>
+  BlupiEdit Documentation &mdash; <a href="https://github.com/openeggbert/BlupiEdit">openeggbert/BlupiEdit</a> on GitHub
+</footer>
+
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

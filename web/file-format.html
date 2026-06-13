@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLP File Format – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">B</div>
+    BlupiEdit
+  </a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html" class="active">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+  </nav>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h4>On this page</h4>
+      <a href="#overview">Overview</a>
+      <a href="#header">Header (0x00–0x12)</a>
+      <a href="#scroll">Scroll Flags (0xD4)</a>
+      <a href="#music-bg">Music &amp; Background</a>
+      <a href="#start-positions">Start Positions (0x148)</a>
+      <a href="#level-name">Level Name (0x178)</a>
+      <a href="#tile-grid">Tile Grid (0x364)</a>
+      <a href="#tile-grid-2">Tile Grid 2 (0x4CB4)</a>
+      <a href="#items-array">Items Array (0x6404)</a>
+      <a href="#item-struct">Item Structure</a>
+      <a href="#encoding">String Encoding</a>
+      <a href="#user-levels">User Level Paths</a>
+      <a href="#info-file">info*.blp Files</a>
+    </div>
+  </aside>
+
+  <main>
+    <h1>BLP File Format</h1>
+    <p>Complete binary specification of the <code>.blp</code> level file format used by Speedy Blupi II.</p>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">&#9888;</span>
+      <p>This specification was derived by reverse engineering. Fields marked <strong>"Unknown"</strong> have not been fully mapped. All multi-byte values are little-endian.</p>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+
+    <p>A <code>.blp</code> level file is a flat binary structure with no headers, magic bytes, or compression. Fields are read by seeking to hard-coded byte offsets. The file contains:</p>
+
+    <ul>
+      <li>Version information</li>
+      <li>Level metadata (scroll, music, background)</li>
+      <li>Up to 4 player start positions and directions</li>
+      <li>A 40-character level name</li>
+      <li>Two 100×100 tile grids (layers)</li>
+      <li>Up to 200 game object (item) records</li>
+    </ul>
+
+    <h3>File size estimate</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Section</th><th>Size</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Header / metadata</td><td>~0x364 bytes</td><td>Scattered fields with unknown gaps</td></tr>
+          <tr><td>Tile Grid 1</td><td>100 × 100 × 2 = 20,000 B</td><td>short[100,100]</td></tr>
+          <tr><td>Tile Grid 2</td><td>100 × 100 × 2 = 20,000 B</td><td>short[100,100]</td></tr>
+          <tr><td>Items</td><td>200 × 48 = 9,600 B</td><td>Fixed 200 slots even if unused</td></tr>
+          <tr><td><strong>Total</strong></td><td><strong>~50–55 KB</strong></td><td>Varies with metadata gaps</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="header">Header — Offset 0x00</h2>
+
+    <p>The file begins with a two-field version record:</p>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x00</td><td>2 B</td><td><code>MajorVersion</code></td><td class="td-type">uint16</td><td>Major format version number</td></tr>
+          <tr><td>0x02</td><td>2 B</td><td><code>MinorVersion</code></td><td class="td-type">uint16</td><td>Minor format version number</td></tr>
+          <tr><td>0x04–0xD3</td><td>208 B</td><td><em>Unknown gap</em></td><td></td><td>Not read by BlupiEdit (may contain additional metadata)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code><span class="cm">// Reading in LevelData constructor</span>
+MajorVersion = reader.ReadUInt16();  <span class="cm">// @ 0x00</span>
+MinorVersion = reader.ReadUInt16();  <span class="cm">// @ 0x02</span></code></pre>
+
+    <h2 id="scroll">Scroll Flags — Offset 0xD4</h2>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0xD4</td><td>4 B</td><td><code>HorizontalScroll</code></td><td class="td-type">int32</td><td>100 = scroll enabled, 0 = disabled</td></tr>
+          <tr><td>0xD8</td><td>4 B</td><td><code>VerticalScroll</code></td><td class="td-type">int32</td><td>100 = scroll enabled, 0 = disabled</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>str.Seek(<span class="nu">0xD4</span>, SeekOrigin.Begin);
+HorizontalScroll = reader.ReadInt32() == <span class="nu">100</span>;  <span class="cm">// true if value is 100</span>
+VerticalScroll   = reader.ReadInt32() == <span class="nu">100</span>;</code></pre>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>The scroll value is stored as an integer (100 = on) rather than a boolean. This suggests it may originally have been a scroll speed percentage. Only 0 and 100 appear in practice.</p>
+    </div>
+
+    <h2 id="music-bg">Music &amp; Background — Offset 0xDC</h2>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0xDC</td><td>2 B</td><td><em>skip</em></td><td></td><td>Skipped (unknown)</td></tr>
+          <tr><td>0xDE</td><td>2 B</td><td><code>Music</code></td><td class="td-type">int16</td><td>Music track index</td></tr>
+          <tr><td>0xE0</td><td>2 B</td><td><code>Background</code></td><td class="td-type">int16</td><td>Background index N → loads <code>decor{N:000}.blp</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>str.Seek(<span class="nu">2</span>, SeekOrigin.Current);  <span class="cm">// skip 2 unknown bytes @ 0xDC</span>
+Music      = reader.ReadInt16();    <span class="cm">// @ 0xDE</span>
+Background = reader.ReadInt16();    <span class="cm">// @ 0xE0</span></code></pre>
+
+    <h2 id="start-positions">Start Positions — Offset 0x148</h2>
+
+    <p>Four player start positions are stored as world-space pixel coordinates, followed by four direction flags.</p>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x148</td><td>8 B</td><td><code>StartPositions[0]</code></td><td class="td-type">int32 × 2</td><td>Player 1 — X, Y in pixels</td></tr>
+          <tr><td>0x150</td><td>8 B</td><td><code>StartPositions[1]</code></td><td class="td-type">int32 × 2</td><td>Player 2 — X, Y</td></tr>
+          <tr><td>0x158</td><td>8 B</td><td><code>StartPositions[2]</code></td><td class="td-type">int32 × 2</td><td>Player 3 — X, Y</td></tr>
+          <tr><td>0x160</td><td>8 B</td><td><code>StartPositions[3]</code></td><td class="td-type">int32 × 2</td><td>Player 4 — X, Y</td></tr>
+          <tr><td>0x168</td><td>4 B</td><td><code>StartDirections[0]</code></td><td class="td-type">int32</td><td>Player 1 — non-zero = facing right</td></tr>
+          <tr><td>0x16C</td><td>4 B</td><td><code>StartDirections[1]</code></td><td class="td-type">int32</td><td>Player 2</td></tr>
+          <tr><td>0x170</td><td>4 B</td><td><code>StartDirections[2]</code></td><td class="td-type">int32</td><td>Player 3</td></tr>
+          <tr><td>0x174</td><td>4 B</td><td><code>StartDirections[3]</code></td><td class="td-type">int32</td><td>Player 4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>str.Seek(<span class="nu">0x148</span>, SeekOrigin.Begin);
+StartPositions = <span class="kw">new</span> <span class="ty">Point</span>[<span class="nu">4</span>];
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="nu">0</span>; i &lt; <span class="nu">4</span>; i++)
+    StartPositions[i] = <span class="kw">new</span> <span class="ty">Point</span>(reader.ReadInt32(), reader.ReadInt32());
+
+StartDirections = <span class="kw">new</span> <span class="kw">bool</span>[<span class="nu">4</span>];
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="nu">0</span>; i &lt; <span class="nu">4</span>; i++)
+    StartDirections[i] = reader.ReadInt32() != <span class="nu">0</span>;</code></pre>
+
+    <h2 id="level-name">Level Name — Offset 0x178</h2>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x178</td><td>40 B</td><td><code>LevelName</code></td><td>Null-terminated string in Windows-1252 (CP1252), padded with zeros to 40 bytes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>LevelName = reader.ReadString(<span class="nu">40</span>);  <span class="cm">// custom extension method; stops at first null byte</span></code></pre>
+
+    <h2 id="tile-grid">Primary Tile Grid — Offset 0x364</h2>
+
+    <p>A 100×100 array of <code>int16</code> tile indices. The index references an entry in the <strong>Object</strong> sprite sheet. Value <code>-1</code> means the cell is empty (no tile).</p>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x364</td><td>20,000 B</td><td><code>Tiles[x, y]</code></td><td>Primary tile grid; iterated x = 0..99, y = 0..99 (x-major order)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>str.Seek(<span class="nu">0x364</span>, SeekOrigin.Begin);
+Tiles = <span class="kw">new short</span>[<span class="nu">100</span>, <span class="nu">100</span>];
+<span class="kw">for</span> (<span class="kw">int</span> x = <span class="nu">0</span>; x &lt; <span class="nu">100</span>; x++)
+    <span class="kw">for</span> (<span class="kw">int</span> y = <span class="nu">0</span>; y &lt; <span class="nu">100</span>; y++)
+        Tiles[x, y] = reader.ReadInt16();</code></pre>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>Iteration order is <strong>x-major</strong> (all Y values for X=0 first, then X=1, etc.). This matches column-major storage. Cells with value <code>-1</code> are skipped during rendering.</p>
+    </div>
+
+    <h2 id="tile-grid-2">Secondary Tile Grid — Offset 0x4CB4</h2>
+
+    <p>Identical structure to the primary tile grid. Purpose is not fully documented — it may represent a foreground/overlay layer or a second pass of tiles.</p>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x4CB4</td><td>20,000 B</td><td><code>Tiles2[x, y]</code></td><td>Secondary tile layer; same layout as Tiles</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code><span class="cm">// Reads immediately after Tiles (no seek needed)</span>
+Tiles2 = <span class="kw">new short</span>[<span class="nu">100</span>, <span class="nu">100</span>];
+<span class="kw">for</span> (<span class="kw">int</span> x = <span class="nu">0</span>; x &lt; <span class="nu">100</span>; x++)
+    <span class="kw">for</span> (<span class="kw">int</span> y = <span class="nu">0</span>; y &lt; <span class="nu">100</span>; y++)
+        Tiles2[x, y] = reader.ReadInt16();</code></pre>
+
+    <h2 id="items-array">Items Array — Offset 0x6404</h2>
+
+    <p>An array of exactly <strong>200 item records</strong>, each 48 bytes. Items with <code>Type == 0 (None)</code> are ignored when loading (not added to the <code>Items</code> list). When saving, unused slots are written as zero bytes.</p>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x6404</td><td>48 B</td><td>Item slot 0</td></tr>
+          <tr><td>0x6434</td><td>48 B</td><td>Item slot 1</td></tr>
+          <tr><td>…</td><td>…</td><td>…</td></tr>
+          <tr><td>0x6404 + 199×48</td><td>48 B</td><td>Item slot 199</td></tr>
+          <tr><td><strong>Total</strong></td><td><strong>9,600 B</strong></td><td>Fixed-size block regardless of actual item count</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>Items = <span class="kw">new</span> <span class="ty">List</span>&lt;<span class="ty">LevelItem</span>&gt;();
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="nu">0</span>; i &lt; <span class="nu">200</span>; i++)
+{
+    <span class="ty">LevelItem</span> item = <span class="kw">new</span> <span class="ty">LevelItem</span>(reader);
+    <span class="kw">if</span> (item.Type != <span class="ty">ItemTypes</span>.None)
+        Items.Add(item);
+}</code></pre>
+
+    <h3>Saving items</h3>
+    <pre><code><span class="kw">for</span> (<span class="kw">int</span> i = <span class="nu">0</span>; i &lt; Items.Count; i++)
+    Items[i].<span class="fn">Write</span>(writer);
+<span class="kw">if</span> (Items.Count &lt; <span class="nu">200</span>)
+    writer.Write(<span class="kw">new byte</span>[<span class="nu">0x30</span> * (<span class="nu">200</span> - Items.Count)]);  <span class="cm">// pad unused slots</span></code></pre>
+
+    <h2 id="item-struct">Item Record Structure (48 bytes)</h2>
+
+    <p>Each item record is read sequentially. See <a href="architecture.html#levelitem">Architecture → LevelItem</a> for the field table. Here is the exact read order:</p>
+
+    <pre><code><span class="ty">ItemTypes</span> Type  = (<span class="ty">ItemTypes</span>)reader.ReadUInt16(); <span class="cm">// 0x00</span>
+<span class="kw">ushort</span> ABTime   = reader.ReadUInt16();               <span class="cm">// 0x02</span>
+<span class="kw">ushort</span> BATime   = reader.ReadUInt16();               <span class="cm">// 0x04</span>
+<span class="kw">ushort</span> AWait    = reader.ReadUInt16();               <span class="cm">// 0x06</span>
+<span class="kw">ushort</span> BWait    = reader.ReadUInt16();               <span class="cm">// 0x08</span>
+<span class="kw">ushort</span> field_A  = reader.ReadUInt16();               <span class="cm">// 0x0A</span>
+<span class="ty">Point</span>  PointA   = <span class="kw">new</span> Point(reader.ReadInt32(), reader.ReadInt32()); <span class="cm">// 0x0C</span>
+<span class="ty">Point</span>  PointB   = <span class="kw">new</span> Point(reader.ReadInt32(), reader.ReadInt32()); <span class="cm">// 0x14</span>
+<span class="ty">Point</span>  PointC   = <span class="kw">new</span> Point(reader.ReadInt32(), reader.ReadInt32()); <span class="cm">// 0x1C</span>
+<span class="kw">ushort</span> field_24 = reader.ReadUInt16();               <span class="cm">// 0x24</span>
+<span class="kw">ushort</span> field_26 = reader.ReadUInt16();               <span class="cm">// 0x26</span>
+<span class="kw">ushort</span> field_28 = reader.ReadUInt16();               <span class="cm">// 0x28</span>
+<span class="ty">TileTypes</span> ArtFile = (<span class="ty">TileTypes</span>)reader.ReadUInt16(); <span class="cm">// 0x2A</span>
+<span class="kw">ushort</span> Tile     = reader.ReadUInt16();               <span class="cm">// 0x2C</span>
+<span class="kw">ushort</span> field_2E = reader.ReadUInt16();               <span class="cm">// 0x2E</span></code></pre>
+
+    <h2 id="encoding">String Encoding</h2>
+
+    <p>All strings in .blp files are encoded in <strong>Windows-1252 (CP1252)</strong> — a single-byte Western European encoding. This was the standard for Windows applications in the late 1990s when Speedy Blupi II was released.</p>
+
+    <pre><code><span class="cm">// The encoding is a static singleton in LevelData</span>
+<span class="kw">static readonly</span> <span class="ty">Encoding</span> encoding = Encoding.GetEncoding(<span class="nu">1252</span>);
+
+<span class="cm">// ReadString extension — reads exactly &lt;length&gt; bytes,</span>
+<span class="cm">// returns string up to first null byte</span>
+<span class="kw">public static string</span> <span class="fn">ReadString</span>(<span class="kw">this</span> <span class="ty">BinaryReader</span> br, <span class="kw">int</span> length)
+{
+    <span class="kw">byte</span>[] buffer = br.ReadBytes(length);
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nu">0</span>; i &lt; length; i++)
+        <span class="kw">if</span> (buffer[i] == <span class="nu">0</span>)
+            <span class="kw">return</span> LevelData.Encoding.GetString(buffer, <span class="nu">0</span>, i);
+    <span class="kw">return</span> LevelData.Encoding.GetString(buffer);
+}</code></pre>
+
+    <h2 id="user-levels">Level File Paths</h2>
+
+    <p>Level files follow a predictable naming convention inside the game's <code>data/</code> directory:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Level set</th><th>Path pattern</th><th>Count</th></tr></thead>
+        <tbody>
+          <tr><td><strong>World</strong> (userid=0)</td><td><code>data/world{N:000}.blp</code></td><td>1–399</td></tr>
+          <tr><td><strong>User 1–8</strong> (userid=1..8)</td><td><code>data/u{userid:000}-{N:000}.blp</code></td><td>1–20 per user</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code><span class="kw">public static string</span> <span class="fn">GetLevelName</span>(<span class="kw">int</span> userid, <span class="kw">int</span> levelnum)
+{
+    <span class="kw">if</span> (userid != <span class="nu">0</span>)
+        <span class="kw">return</span> <span class="fn">FindPathCaseInsensitive</span>(<span class="fn">GamePath</span>(<span class="st">"data"</span>,
+            string.Format(<span class="st">"u{0:000}-{1:000}.blp"</span>, userid, levelnum)));
+    <span class="kw">else</span>
+        <span class="kw">return</span> <span class="fn">FindPathCaseInsensitive</span>(<span class="fn">GamePath</span>(<span class="st">"data"</span>,
+            string.Format(<span class="st">"world{0:000}.blp"</span>, levelnum)));
+}</code></pre>
+
+    <h2 id="info-file">info*.blp Files (Collection Metadata)</h2>
+
+    <p>Files <code>data/info001.blp</code>–<code>data/info008.blp</code> store user collection metadata. BlupiEdit reads only one field from them:</p>
+
+    <div class="table-wrap">
+      <table class="offset-table">
+        <thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0x00–0x15</td><td>22 B</td><td><em>Unknown</em></td><td>Skipped</td></tr>
+          <tr><td>0x16</td><td>40 B</td><td>Collection name</td><td>CP1252 null-terminated string shown in level browser</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><code>str.Seek(<span class="nu">0x16</span>, SeekOrigin.Begin);
+<span class="kw">string</span> name = r.<span class="fn">ReadString</span>(<span class="nu">40</span>);
+levelSetList.Items.Add(<span class="st">"User "</span> + i + <span class="st">" - "</span> + name);</code></pre>
+
+  </main>
+</div>
+
+<footer>
+  BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a>
+</footer>
+
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

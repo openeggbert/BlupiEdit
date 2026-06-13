@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Reference – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">B</div>
+    BlupiEdit
+  </a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html" class="active">API Reference</a>
+  </nav>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h4>Classes</h4>
+      <a href="#program">Program</a>
+      <a href="#mainform">MainForm</a>
+      <a href="#leveldata">LevelData</a>
+      <a href="#levelitem">LevelItem</a>
+      <a href="#levelviewmodel">LevelViewModel</a>
+      <a href="#tileinfo">TileInfo</a>
+      <a href="#tilelist">TileList</a>
+      <a href="#levelselectform">LevelSelectForm</a>
+      <a href="#extensions">Extensions</a>
+    </div>
+    <div class="sidebar-section">
+      <h4>Value Types</h4>
+      <a href="#sprite">Sprite (struct)</a>
+    </div>
+    <div class="sidebar-section">
+      <h4>Enums</h4>
+      <a href="#itemtypes">ItemTypes</a>
+      <a href="#tiletypes">TileTypes</a>
+      <a href="#direction">Direction</a>
+      <a href="#levelselectformmode">LevelSelectFormMode</a>
+    </div>
+  </aside>
+
+  <main>
+    <h1>API Reference</h1>
+    <p>Complete documentation of all public types in the <code>BlupiEdit</code> namespace.</p>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="program">Program</h2>
+    <p>File: <code>BlupiEdit/Program.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Static entry-point class. Sets up WinForms and launches <code>MainForm</code>.</p>
+
+    <div class="prop-list">
+      <div class="prop-item">
+        <div class="prop-header">
+          <span class="prop-name">Arguments</span>
+          <span class="prop-type">string[] { get; private set; }</span>
+          <span class="prop-cat">static</span>
+        </div>
+        <div class="prop-desc">Command-line arguments passed to the executable. <code>Arguments[0]</code>, if present, is treated as the path to <code>BLUPI.EXE</code> and auto-loaded on startup.</div>
+      </div>
+    </div>
+
+    <pre><code>[STAThread]
+<span class="kw">static void</span> <span class="fn">Main</span>(<span class="kw">string</span>[] args)
+{
+    Arguments = args;
+    Application.EnableVisualStyles();
+    Application.SetCompatibleTextRenderingDefault(<span class="kw">false</span>);
+    Application.Run(<span class="kw">new</span> <span class="ty">MainForm</span>());
+}</code></pre>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="mainform">MainForm : Form</h2>
+    <p>File: <code>BlupiEdit/MainForm.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>The main application window. Contains all UI elements and orchestrates interaction between the data layer and the user interface.</p>
+
+    <h3>Private fields</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>userid</code></td><td class="td-type">int</td><td>Active user collection (0 = World, 1–8 = User)</td></tr>
+          <tr><td class="td-name"><code>levelnum</code></td><td class="td-type">int</td><td>Active level number</td></tr>
+          <tr><td class="td-name"><code>selectedItem</code></td><td class="td-type">LevelItem</td><td>Currently selected game object in the Object Panel; <code>null</code> if none</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Methods</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Return</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>LoadGame(string filename)</code></td><td>void</td><td>Calls <code>LevelData.LoadGame()</code>; enables <em>Change Level</em> menu item</td></tr>
+          <tr><td><code>RefreshCurrentLevelView()</code></td><td>void</td><td>Reconfigures scrollbars, repopulates TileList, assigns PropertyGrid, invalidates panels</td></tr>
+          <tr><td><code>UpdateFormText()</code></td><td>void</td><td>Updates window title with game/level info and level name</td></tr>
+          <tr><td><code>tilePanel_Paint(object, PaintEventArgs)</code></td><td>void</td><td>Renders background, tile grid, Blupi start, and all items to the tile panel</td></tr>
+          <tr><td><code>objectPanel_Paint(object, PaintEventArgs)</code></td><td>void</td><td>Renders background and items to the object panel; highlights selected item</td></tr>
+          <tr><td><code>objectPanel_MouseClick(object, MouseEventArgs)</code></td><td>void</td><td>Selects the nearest LevelItem within GridSize radius of click point</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="leveldata">LevelData</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Hybrid class: static container for shared game state + instance for per-level data.</p>
+
+    <h3>Constants</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Value</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>LevelSize</code></td><td class="td-val">100</td><td>Level grid dimension (tiles)</td></tr>
+          <tr><td class="td-name"><code>GridSize</code></td><td class="td-val">64</td><td>Tile size in pixels</td></tr>
+          <tr><td class="td-name"><code>PixelSize</code></td><td class="td-val">6400</td><td>Total world size in pixels (100 × 64)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Static properties</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>IsBlupi2</code></td><td class="td-type">bool</td><td>Always <code>true</code> in current implementation</td></tr>
+          <tr><td class="td-name"><code>CurrentLevelPath</code></td><td class="td-type">string</td><td>Absolute path to the active .blp file</td></tr>
+          <tr><td class="td-name"><code>CurrentLevel</code></td><td class="td-type">LevelData</td><td>The currently loaded level instance</td></tr>
+          <tr><td class="td-name"><code>BlupiTiles</code></td><td class="td-type">TileInfo[]</td><td>Frame descriptors for Blupi character sprites</td></tr>
+          <tr><td class="td-name"><code>ObjectTiles</code></td><td class="td-type">TileInfo[]</td><td>Frame descriptors for environment tiles</td></tr>
+          <tr><td class="td-name"><code>ElementTiles</code></td><td class="td-type">TileInfo[]</td><td>Frame descriptors for element sprites</td></tr>
+          <tr><td class="td-name"><code>ExploTiles</code></td><td class="td-type">TileInfo[]</td><td>Frame descriptors for explosion sprites</td></tr>
+          <tr><td class="td-name"><code>TileImages</code></td><td class="td-type">Dictionary&lt;TileTypes, Sprite[]&gt;</td><td>All loaded sprites, keyed by TileTypes</td></tr>
+          <tr><td class="td-name"><code>Encoding</code></td><td class="td-type">Encoding</td><td>Windows-1252 (CP1252) encoding instance</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Instance properties</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>MajorVersion</code></td><td class="td-type">ushort</td><td>Format major version (read from file offset 0x00)</td></tr>
+          <tr><td class="td-name"><code>MinorVersion</code></td><td class="td-type">ushort</td><td>Format minor version (read from file offset 0x02)</td></tr>
+          <tr><td class="td-name"><code>HorizontalScroll</code></td><td class="td-type">bool</td><td>Horizontal scrolling flag</td></tr>
+          <tr><td class="td-name"><code>VerticalScroll</code></td><td class="td-type">bool</td><td>Vertical scrolling flag</td></tr>
+          <tr><td class="td-name"><code>Music</code></td><td class="td-type">short</td><td>Music track index</td></tr>
+          <tr><td class="td-name"><code>Background</code></td><td class="td-type">short</td><td>Background image index</td></tr>
+          <tr><td class="td-name"><code>StartPositions</code></td><td class="td-type">Point[4]</td><td>World-space pixel positions of player starts</td></tr>
+          <tr><td class="td-name"><code>StartDirections</code></td><td class="td-type">bool[4]</td><td>Facing direction on start (true = right)</td></tr>
+          <tr><td class="td-name"><code>LevelName</code></td><td class="td-type">string</td><td>Level name (max 40 chars, CP1252)</td></tr>
+          <tr><td class="td-name"><code>Tiles</code></td><td class="td-type">short[100,100]</td><td>Primary tile grid; −1 = empty</td></tr>
+          <tr><td class="td-name"><code>Tiles2</code></td><td class="td-type">short[100,100]</td><td>Secondary tile layer</td></tr>
+          <tr><td class="td-name"><code>Items</code></td><td class="td-type">List&lt;LevelItem&gt;</td><td>Active game objects (max 200)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Static methods</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Return</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>LoadGame(string filename)</code></td><td>void</td><td>Extract TileInfo from EXE, load all sprite sheets into TileImages</td></tr>
+          <tr><td><code>LoadLevel(int userid, int levelnum)</code></td><td>void</td><td>Parse a .blp file into CurrentLevel</td></tr>
+          <tr><td><code>GetLevelName(int userid, int levelnum)</code></td><td>string</td><td>Compute the case-insensitive path to a level file</td></tr>
+          <tr><td><code>SaveLevel()</code></td><td>void</td><td>Serialize CurrentLevel to CurrentLevelPath</td></tr>
+          <tr><td><code>ChangeLevelPath(int userid, int levelnum)</code></td><td>void</td><td>Update CurrentLevelPath for Save As</td></tr>
+          <tr><td><code>LoadImage(string filename)</code></td><td>Bitmap</td><td>Load BMP from IMAGE16/ or IMAGE08/, apply blue chroma-key</td></tr>
+          <tr><td><code>Distance(Point p1, Point p2)</code></td><td>double</td><td>Euclidean pixel distance</td></tr>
+          <tr><td><code>FindPathCaseInsensitive(string path)</code></td><td>string</td><td>Recursive case-insensitive file path resolver (Linux compatibility)</td></tr>
+          <tr><td><code>GamePath(params string[] parts)</code></td><td>string</td><td>Combines gameBaseDirectory with the given path parts</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Instance methods</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Return</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>LevelData()</code></td><td>—</td><td>Default constructor (empty level)</td></tr>
+          <tr><td><code>LevelData(string filename)</code></td><td>—</td><td>Load constructor — parses the given .blp file; falls back to embedded DefaultLevel if file does not exist</td></tr>
+          <tr><td><code>Save(string filename)</code></td><td>void</td><td>Serialize this level to the given path</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="levelitem">LevelItem</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>One interactive game object in a level. Corresponds to a 48-byte record in the .blp items array.</p>
+
+    <h3>Properties</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>[DisplayName]</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>Type</code></td><td class="td-type">ItemTypes</td><td>—</td><td>Object type identifier</td></tr>
+          <tr><td class="td-name"><code>ABTime</code></td><td class="td-type">ushort</td><td>"A to B time"</td><td>Ticks to travel from A to B</td></tr>
+          <tr><td class="td-name"><code>ABSpeed</code></td><td class="td-type">int</td><td>"A to B speed"</td><td>Computed: Distance(A,B) / ABTime</td></tr>
+          <tr><td class="td-name"><code>BATime</code></td><td class="td-type">ushort</td><td>"B to A time"</td><td>Ticks to travel from B to A</td></tr>
+          <tr><td class="td-name"><code>BASpeed</code></td><td class="td-type">int</td><td>"B to A speed"</td><td>Computed: Distance(B,A) / BATime</td></tr>
+          <tr><td class="td-name"><code>AWait</code></td><td class="td-type">ushort</td><td>"A Wait"</td><td>Pause ticks at point A</td></tr>
+          <tr><td class="td-name"><code>BWait</code></td><td class="td-type">ushort</td><td>"B Wait"</td><td>Pause ticks at point B</td></tr>
+          <tr><td class="td-name"><code>field_A</code></td><td class="td-type">ushort</td><td>—</td><td>Unknown field at offset 0x0A</td></tr>
+          <tr><td class="td-name"><code>PointA</code></td><td class="td-type">Point</td><td>"Point A"</td><td>World-space position / start point</td></tr>
+          <tr><td class="td-name"><code>PointB</code></td><td class="td-type">Point</td><td>"Point B"</td><td>Target movement point</td></tr>
+          <tr><td class="td-name"><code>PointC</code></td><td class="td-type">Point</td><td>"Point C?"</td><td>Third control point (purpose unknown)</td></tr>
+          <tr><td class="td-name"><code>field_24/26/28</code></td><td class="td-type">ushort</td><td>—</td><td>Unknown fields</td></tr>
+          <tr><td class="td-name"><code>ArtFile</code></td><td class="td-type">TileTypes</td><td>"Art File"</td><td>Which sprite sheet to use</td></tr>
+          <tr><td class="td-name"><code>Tile</code></td><td class="td-type">ushort</td><td>—</td><td>Sprite index within the ArtFile sheet</td></tr>
+          <tr><td class="td-name"><code>field_2E</code></td><td class="td-type">ushort</td><td>—</td><td>Unknown field at offset 0x2E</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Methods</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>LevelItem(BinaryReader reader)</code></td><td>Read constructor — parses one 48-byte item record from the current stream position</td></tr>
+          <tr><td><code>Write(BinaryWriter writer)</code></td><td>Serialize this item to exactly 48 bytes at the current write position</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="levelviewmodel">LevelViewModel</h2>
+    <p>File: <code>BlupiEdit/LevelViewModel.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Read-only PropertyGrid adapter for <code>LevelData</code>. All properties have <code>[Category]</code> attributes; none have setters.</p>
+
+    <h3>Constructor</h3>
+    <pre><code><span class="kw">public</span> <span class="fn">LevelViewModel</span>(<span class="ty">LevelData</span> l)  <span class="cm">// stores reference to l</span></code></pre>
+
+    <p>See <a href="architecture.html#levelviewmodel">Architecture → LevelViewModel</a> for the full property table.</p>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="tileinfo">TileInfo</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Describes the source rectangle and draw offset for one sprite frame. 12 bytes per record in the EXE.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>Location</code></td><td class="td-type">Rectangle</td><td>Source crop rectangle within the sprite sheet BMP</td></tr>
+          <tr><td class="td-name"><code>Offset</code></td><td class="td-type">Point</td><td>Draw offset applied when rendering the sprite</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Static method</h3>
+    <pre><code><span class="cm">// Reads count (int16) + count TileInfo records from stream</span>
+<span class="kw">public static</span> <span class="ty">TileInfo</span>[] <span class="fn">Read</span>(<span class="ty">Stream</span> stream)</code></pre>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="tilelist">TileList : UserControl</h2>
+    <p>File: <code>BlupiEdit/TileList.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Custom scrollable tile-picker control. See <a href="architecture.html#tilelist">Architecture → TileList</a> for full documentation.</p>
+
+    <h3>Public API summary</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Member</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>SelectedIndex</code></td><td class="td-type">int { get; set; }</td><td>Selected tile index (−1 = none)</td></tr>
+          <tr><td class="td-name"><code>ImageSize</code></td><td class="td-type">int { get; set; }</td><td>Tile display size in pixels (default 8)</td></tr>
+          <tr><td class="td-name"><code>Direction</code></td><td class="td-type">Direction { get; set; }</td><td>Layout direction</td></tr>
+          <tr><td class="td-name"><code>Images</code></td><td class="td-type">List&lt;Bitmap&gt;</td><td>Tile bitmaps to display</td></tr>
+          <tr><td class="td-name"><code>ScrollValue</code></td><td class="td-type">int { get; set; }</td><td>Current scrollbar value (horizontal or vertical)</td></tr>
+          <tr><td class="td-name"><code>SelectedIndexChanged</code></td><td class="td-type">EventHandler</td><td>Fires when selection changes</td></tr>
+          <tr><td class="td-name"><code>ItemDrag</code></td><td class="td-type">EventHandler</td><td>Fires when drag threshold exceeded</td></tr>
+          <tr><td class="td-name"><code>ChangeSize()</code></td><td class="td-type">void</td><td>Recomputes scrollbar range after Images change or resize</td></tr>
+          <tr><td class="td-name"><code>GetItemAtPoint(Point)</code></td><td class="td-type">int</td><td>Returns tile index at given client coordinates</td></tr>
+          <tr><td class="td-name"><code>GetItemBounds(int)</code></td><td class="td-type">Rectangle</td><td>Returns the client rectangle of a tile slot</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="levelselectform">LevelSelectForm : Form</h2>
+    <p>File: <code>BlupiEdit/LevelSelectForm.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Modal level browser. See <a href="architecture.html#levelselectform">Architecture → LevelSelectForm</a> for behaviour details.</p>
+
+    <h3>Constructor</h3>
+    <pre><code><span class="kw">public</span> <span class="fn">LevelSelectForm</span>(<span class="ty">LevelSelectFormMode</span> mode)</code></pre>
+
+    <h3>Output properties</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>UserID</code></td><td class="td-type">int { get; }</td><td>0 = World, 1–8 = User collection</td></tr>
+          <tr><td class="td-name"><code>LevelNum</code></td><td class="td-type">int { get; }</td><td>Selected level number</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="extensions">Extensions (static class)</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Extension methods for <code>Graphics</code>, <code>BinaryReader</code>, and <code>BinaryWriter</code>.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method signature</th><th>Extends</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>DrawSprite(Sprite spr, Point point)</code></td>
+            <td><code>Graphics</code></td>
+            <td>Draw sprite at <code>point + spr.Offset</code> at native pixel size</td>
+          </tr>
+          <tr>
+            <td><code>SetOptions()</code></td>
+            <td><code>Graphics</code></td>
+            <td>Set HighSpeed compositing, NearestNeighbor interpolation, no smoothing — optimal for pixel-art rendering</td>
+          </tr>
+          <tr>
+            <td><code>ReadString(int length)</code></td>
+            <td><code>BinaryReader</code></td>
+            <td>Read null-terminated CP1252 string; always advances stream by exactly <code>length</code> bytes</td>
+          </tr>
+          <tr>
+            <td><code>WriteString(string value, int length)</code></td>
+            <td><code>BinaryWriter</code></td>
+            <td>Write CP1252 string, truncated or zero-padded to exactly <code>length</code> bytes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="sprite">Sprite (struct)</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Value type pairing a <code>Bitmap</code> with its render offset. See <a href="tiles.html#sprite">Tiles &amp; Sprites → Sprite</a> for the full member table.</p>
+
+    <pre><code><span class="kw">public struct</span> <span class="ty">Sprite</span>
+{
+    <span class="kw">public</span> <span class="ty">Point</span>  Offset;   <span class="cm">// draw offset</span>
+    <span class="kw">public</span> <span class="ty">Bitmap</span> Image;    <span class="cm">// cropped bitmap (reference type)</span>
+    <span class="kw">public int</span> X { <span class="kw">get</span>; <span class="kw">set</span>; }   <span class="cm">// Offset.X</span>
+    <span class="kw">public int</span> Y { <span class="kw">get</span>; <span class="kw">set</span>; }   <span class="cm">// Offset.Y</span>
+    <span class="kw">public int</span> Width  { <span class="kw">get</span>; }    <span class="cm">// Image.Width</span>
+    <span class="kw">public int</span> Height { <span class="kw">get</span>; }    <span class="cm">// Image.Height</span>
+    <span class="kw">public</span> <span class="ty">Size</span>      Size   { <span class="kw">get</span>; }  <span class="cm">// Image.Size</span>
+    <span class="kw">public</span> <span class="ty">Rectangle</span> Bounds { <span class="kw">get</span>; }  <span class="cm">// Rectangle(Offset, Size)</span>
+}</code></pre>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="itemtypes">ItemTypes (enum : ushort)</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>All valid <code>LevelItem.Type</code> values. See <a href="items.html">Item Types</a> page for descriptions.</p>
+
+    <pre><code><span class="kw">public enum</span> <span class="ty">ItemTypes</span> : <span class="ty">ushort</span>
+{
+    None = <span class="nu">0</span>,
+    Lift = <span class="nu">1</span>,       Bomb = <span class="nu">2</span>,          HangingBomb = <span class="nu">3</span>,
+    Bulldozer = <span class="nu">4</span>,   TreasureChest = <span class="nu">5</span>,  Egg = <span class="nu">6</span>,
+    Goal = <span class="nu">7</span>,
+    Explosion1 = <span class="nu">8</span>,  Explosion2 = <span class="nu">9</span>,     Explosion3 = <span class="nu">10</span>,  Explosion4 = <span class="nu">11</span>,
+    WoodenCase = <span class="nu">12</span>, Helicopter = <span class="nu">13</span>,    Splash = <span class="nu">14</span>,       Bubbles = <span class="nu">15</span>,
+    MovingBomb = <span class="nu">16</span>, Fish = <span class="nu">17</span>,          Jeep = <span class="nu">19</span>,         Bird = <span class="nu">20</span>,
+    Key = <span class="nu">21</span>,        Skateboard = <span class="nu">24</span>,     Shield = <span class="nu">25</span>,        Lollypop = <span class="nu">26</span>,
+    Sparkles = <span class="nu">27</span>,   GlueTank = <span class="nu">28</span>,       GlueSupply = <span class="nu">29</span>,
+    InvisibilityPotion = <span class="nu">30</span>,              RechargingDevice = <span class="nu">31</span>,
+    HeliportedEnemy = <span class="nu">32</span>,                 MotorizedEnemy = <span class="nu">33</span>,
+    StuckEnemy = <span class="nu">34</span>,
+    Inverter = <span class="nu">40</span>,   Wasp = <span class="nu">44</span>,           Hovercraft = <span class="nu">46</span>,
+    LiftWithConveyerBelt = <span class="nu">47</span>,
+    RedKey = <span class="nu">49</span>,     GreenKey = <span class="nu">50</span>,        BlueKey = <span class="nu">51</span>,
+    SlimeCreature = <span class="nu">54</span>,                    Dynamite = <span class="nu">55</span>,
+    HomingBomb = <span class="nu">96</span>,
+    YellowBomb = <span class="nu">200</span>, OrangeBomb = <span class="nu">201</span>, BlueBomb = <span class="nu">202</span>, GreenBomb = <span class="nu">203</span>,
+}</code></pre>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="tiletypes">TileTypes (enum : ushort)</h2>
+    <p>File: <code>BlupiEdit/LevelData.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Identifies a sprite sheet; used as the key in <code>LevelData.TileImages</code> and the <code>LevelItem.ArtFile</code> field. See <a href="tiles.html#tiletypes">Tiles &amp; Sprites → TileTypes</a>.</p>
+
+    <pre><code><span class="kw">public enum</span> <span class="ty">TileTypes</span> : <span class="ty">ushort</span>
+{
+    None     = <span class="nu">0</span>,   <span class="cm">// no art</span>
+    Object   = <span class="nu">1</span>,   <span class="cm">// object.blp   — environment tiles</span>
+    Blupi000 = <span class="nu">2</span>,   <span class="cm">// blupi000.blp — character set 0</span>
+    Explo    = <span class="nu">9</span>,   <span class="cm">// explo.blp    — explosion frames</span>
+    Element  = <span class="nu">10</span>,  <span class="cm">// element.blp  — environment elements</span>
+    Blupi001 = <span class="nu">11</span>,  <span class="cm">// blupi001.blp — character set 1</span>
+    Blupi002 = <span class="nu">12</span>,  <span class="cm">// blupi002.blp — character set 2</span>
+    Blupi003 = <span class="nu">13</span>,  <span class="cm">// blupi003.blp — character set 3</span>
+}</code></pre>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="direction">Direction (enum)</h2>
+    <p>File: <code>BlupiEdit/TileList.cs</code> | Namespace: <code>BlupiEdit</code></p>
+    <p>Controls the layout direction of the <code>TileList</code> control.</p>
+
+    <pre><code><span class="kw">public enum</span> <span class="ty">Direction</span>
+{
+    Horizontal,  <span class="cm">// tiles arranged in columns, scrolls horizontally</span>
+    Vertical     <span class="cm">// tiles arranged in rows, scrolls vertically</span>
+}</code></pre>
+
+    <!-- ═══════════════════════════════════ -->
+    <h2 id="levelselectformmode">LevelSelectFormMode (enum)</h2>
+    <p>File: <code>BlupiEdit/LevelSelectForm.cs</code> | Namespace: <code>BlupiEdit</code></p>
+
+    <pre><code><span class="kw">public enum</span> <span class="ty">LevelSelectFormMode</span>
+{
+    Open,   <span class="cm">// Load a level; button shows "Open" or "New"</span>
+    Save    <span class="cm">// Save a level; button shows "Save"</span>
+}</code></pre>
+
+  </main>
+</div>
+
+<footer>
+  BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a>
+</footer>
+
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Item Types – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">B</div>
+    BlupiEdit
+  </a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html" class="active">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+  </nav>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h4>On this page</h4>
+      <a href="#overview">Overview</a>
+      <a href="#enum-reference">Enum Reference</a>
+      <a href="#platforms">Platforms &amp; Vehicles</a>
+      <a href="#enemies">Enemies</a>
+      <a href="#collectibles">Collectibles &amp; Power-ups</a>
+      <a href="#hazards">Hazards &amp; Explosives</a>
+      <a href="#special">Special &amp; Effects</a>
+      <a href="#item-movement">Item Movement System</a>
+      <a href="#art-files">Art File Mapping</a>
+    </div>
+  </aside>
+
+  <main>
+    <h1>Item Types</h1>
+    <p>Complete reference for the <code>ItemTypes</code> enum — every game object that can appear as a <code>LevelItem</code> in a Speedy Blupi II level.</p>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>Item type IDs are stored as <code>uint16</code> in the .blp file at byte offset 0x00 of each 48-byte item record. <code>ItemTypes.None (0)</code> marks an unused slot and is never loaded into the <code>Items</code> list.</p>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+
+    <p>Items fall into five broad categories:</p>
+    <ul>
+      <li><strong>Platforms &amp; Vehicles</strong> — moving objects Blupi can ride or interact with</li>
+      <li><strong>Enemies</strong> — hostile creatures that kill Blupi on contact</li>
+      <li><strong>Collectibles &amp; Power-ups</strong> — items Blupi picks up for benefit</li>
+      <li><strong>Hazards &amp; Explosives</strong> — stationary or triggered danger objects</li>
+      <li><strong>Special / Effects</strong> — goals, spawners, animation-only objects</li>
+    </ul>
+
+    <p>All items share the same 48-byte <code>LevelItem</code> structure. The <code>Type</code> field determines how the game engine interprets the remaining fields (PointA/B, ABTime, ArtFile, etc.).</p>
+
+    <h2 id="enum-reference">Full Enum Reference</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Category</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="td-id"><code>0</code></td><td class="td-name">None</td><td>—</td><td>Empty slot; never stored in Items list</td></tr>
+          <tr><td class="td-id"><code>1</code></td><td class="td-name">Lift</td><td>Platform</td><td>Moving platform that travels between PointA and PointB</td></tr>
+          <tr><td class="td-id"><code>2</code></td><td class="td-name">Bomb</td><td>Hazard</td><td>Stationary bomb; explodes on contact with Blupi</td></tr>
+          <tr><td class="td-id"><code>3</code></td><td class="td-name">HangingBomb</td><td>Hazard</td><td>Bomb hanging from ceiling; falls when Blupi passes below</td></tr>
+          <tr><td class="td-id"><code>4</code></td><td class="td-name">Bulldozer</td><td>Enemy</td><td>Ground vehicle enemy; moves horizontally between PointA and PointB</td></tr>
+          <tr><td class="td-id"><code>5</code></td><td class="td-name">TreasureChest</td><td>Collectible</td><td>Chest containing a bonus; grants points when collected</td></tr>
+          <tr><td class="td-id"><code>6</code></td><td class="td-name">Egg</td><td>Collectible</td><td>Main collectible; Blupi must collect all eggs to unlock the goal</td></tr>
+          <tr><td class="td-id"><code>7</code></td><td class="td-name">Goal</td><td>Special</td><td>Level exit; activated when all eggs are collected</td></tr>
+          <tr><td class="td-id"><code>8</code></td><td class="td-name">Explosion1</td><td>Effect</td><td>Explosion animation frame 1</td></tr>
+          <tr><td class="td-id"><code>9</code></td><td class="td-name">Explosion2</td><td>Effect</td><td>Explosion animation frame 2</td></tr>
+          <tr><td class="td-id"><code>10</code></td><td class="td-name">Explosion3</td><td>Effect</td><td>Explosion animation frame 3</td></tr>
+          <tr><td class="td-id"><code>11</code></td><td class="td-name">Explosion4</td><td>Effect</td><td>Explosion animation frame 4</td></tr>
+          <tr><td class="td-id"><code>12</code></td><td class="td-name">WoodenCase</td><td>Platform</td><td>Breakable wooden crate; can be pushed or destroyed</td></tr>
+          <tr><td class="td-id"><code>13</code></td><td class="td-name">Helicopter</td><td>Platform/Enemy</td><td>Flying vehicle; Blupi can ride or it may be hostile</td></tr>
+          <tr><td class="td-id"><code>14</code></td><td class="td-name">Splash</td><td>Effect</td><td>Water splash animation effect</td></tr>
+          <tr><td class="td-id"><code>15</code></td><td class="td-name">Bubbles</td><td>Effect</td><td>Bubble stream animation (underwater areas)</td></tr>
+          <tr><td class="td-id"><code>16</code></td><td class="td-name">MovingBomb</td><td>Hazard</td><td>Bomb that moves along a path between PointA and PointB</td></tr>
+          <tr><td class="td-id"><code>17</code></td><td class="td-name">Fish</td><td>Enemy</td><td>Fish enemy; jumps out of water to attack</td></tr>
+          <tr><td class="td-id"><code>19</code></td><td class="td-name">Jeep</td><td>Enemy</td><td>Ground vehicle enemy; faster than Bulldozer</td></tr>
+          <tr><td class="td-id"><code>20</code></td><td class="td-name">Bird</td><td>Enemy</td><td>Flying bird enemy; follows a horizontal patrol path</td></tr>
+          <tr><td class="td-id"><code>21</code></td><td class="td-name">Key</td><td>Collectible</td><td>Key item; used to unlock locked doors</td></tr>
+          <tr><td class="td-id"><code>24</code></td><td class="td-name">Skateboard</td><td>Power-up</td><td>Gives Blupi a speed boost on flat surfaces</td></tr>
+          <tr><td class="td-id"><code>25</code></td><td class="td-name">Shield</td><td>Power-up</td><td>Temporary invincibility item</td></tr>
+          <tr><td class="td-id"><code>26</code></td><td class="td-name">Lollypop</td><td>Collectible</td><td>Bonus collectible; grants extra points</td></tr>
+          <tr><td class="td-id"><code>27</code></td><td class="td-name">Sparkles</td><td>Effect</td><td>Sparkle particle effect (decorative)</td></tr>
+          <tr><td class="td-id"><code>28</code></td><td class="td-name">GlueTank</td><td>Hazard</td><td>Glue container; slows Blupi when touched</td></tr>
+          <tr><td class="td-id"><code>29</code></td><td class="td-name">GlueSupply</td><td>Power-up</td><td>Glue supply — used in conjunction with glue mechanics</td></tr>
+          <tr><td class="td-id"><code>30</code></td><td class="td-name">InvisibilityPotion</td><td>Power-up</td><td>Makes Blupi invisible to enemies for a limited time</td></tr>
+          <tr><td class="td-id"><code>31</code></td><td class="td-name">RechargingDevice</td><td>Power-up</td><td>Recharges a depleted power-up or ability</td></tr>
+          <tr><td class="td-id"><code>32</code></td><td class="td-name">HeliportedEnemy</td><td>Enemy</td><td>Enemy dropped by helicopter; lands and pursues Blupi</td></tr>
+          <tr><td class="td-id"><code>33</code></td><td class="td-name">MotorizedEnemy</td><td>Enemy</td><td>Motorised robot enemy with a patrol route</td></tr>
+          <tr><td class="td-id"><code>34</code></td><td class="td-name">StuckEnemy</td><td>Enemy</td><td>Enemy fixed in one spot; attacks when Blupi enters range</td></tr>
+          <tr><td class="td-id"><code>40</code></td><td class="td-name">Inverter</td><td>Special</td><td>Reverses Blupi's movement direction temporarily</td></tr>
+          <tr><td class="td-id"><code>44</code></td><td class="td-name">Wasp</td><td>Enemy</td><td>Flying wasp enemy; dives at Blupi</td></tr>
+          <tr><td class="td-id"><code>46</code></td><td class="td-name">Hovercraft</td><td>Platform</td><td>Hovering platform; moves between PointA and PointB</td></tr>
+          <tr><td class="td-id"><code>47</code></td><td class="td-name">LiftWithConveyerBelt</td><td>Platform</td><td>Moving platform with a conveyer belt on top</td></tr>
+          <tr><td class="td-id"><code>49</code></td><td class="td-name">RedKey</td><td>Collectible</td><td>Red key; opens red-coded locks</td></tr>
+          <tr><td class="td-id"><code>50</code></td><td class="td-name">GreenKey</td><td>Collectible</td><td>Green key; opens green-coded locks</td></tr>
+          <tr><td class="td-id"><code>51</code></td><td class="td-name">BlueKey</td><td>Collectible</td><td>Blue key; opens blue-coded locks</td></tr>
+          <tr><td class="td-id"><code>54</code></td><td class="td-name">SlimeCreature</td><td>Enemy</td><td>Blob-like enemy; moves slowly but splits when hit</td></tr>
+          <tr><td class="td-id"><code>55</code></td><td class="td-name">Dynamite</td><td>Hazard</td><td>Timed explosive; destroys nearby tiles and objects</td></tr>
+          <tr><td class="td-id"><code>96</code></td><td class="td-name">HomingBomb</td><td>Hazard</td><td>Bomb that tracks Blupi's position</td></tr>
+          <tr><td class="td-id"><code>200</code></td><td class="td-name">YellowBomb</td><td>Hazard</td><td>Yellow variant of bomb with distinct explosion</td></tr>
+          <tr><td class="td-id"><code>201</code></td><td class="td-name">OrangeBomb</td><td>Hazard</td><td>Orange variant; larger blast radius</td></tr>
+          <tr><td class="td-id"><code>202</code></td><td class="td-name">BlueBomb</td><td>Hazard</td><td>Blue variant; freezes enemies in blast area</td></tr>
+          <tr><td class="td-id"><code>203</code></td><td class="td-name">GreenBomb</td><td>Hazard</td><td>Green variant; poisons affected tiles</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="platforms">Platforms &amp; Vehicles</h2>
+
+    <p>Moving platforms use the <strong>A↔B movement system</strong> — the item moves between <code>PointA</code> and <code>PointB</code> with configurable times and wait delays.</p>
+
+    <div class="enum-grid">
+      <div class="enum-item"><span class="enum-id">1</span><span class="enum-name">Lift</span></div>
+      <div class="enum-item"><span class="enum-id">4</span><span class="enum-name">Bulldozer</span></div>
+      <div class="enum-item"><span class="enum-id">12</span><span class="enum-name">WoodenCase</span></div>
+      <div class="enum-item"><span class="enum-id">13</span><span class="enum-name">Helicopter</span></div>
+      <div class="enum-item"><span class="enum-id">19</span><span class="enum-name">Jeep</span></div>
+      <div class="enum-item"><span class="enum-id">46</span><span class="enum-name">Hovercraft</span></div>
+      <div class="enum-item"><span class="enum-id">47</span><span class="enum-name">LiftWithConveyerBelt</span></div>
+    </div>
+
+    <h3 id="lift">Lift (ID 1)</h3>
+    <p>The basic moving platform. Blupi can stand on it and be carried between PointA and PointB.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>Starting position (world pixels)</td></tr>
+          <tr><td><code>PointB</code></td><td>End position (world pixels)</td></tr>
+          <tr><td><code>ABTime</code></td><td>Game ticks to travel from A to B</td></tr>
+          <tr><td><code>BATime</code></td><td>Game ticks to travel from B to A</td></tr>
+          <tr><td><code>AWait</code></td><td>Pause at PointA before departing (ticks)</td></tr>
+          <tr><td><code>BWait</code></td><td>Pause at PointB before returning (ticks)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="enemies">Enemies</h2>
+
+    <div class="enum-grid">
+      <div class="enum-item"><span class="enum-id">4</span><span class="enum-name">Bulldozer</span></div>
+      <div class="enum-item"><span class="enum-id">17</span><span class="enum-name">Fish</span></div>
+      <div class="enum-item"><span class="enum-id">19</span><span class="enum-name">Jeep</span></div>
+      <div class="enum-item"><span class="enum-id">20</span><span class="enum-name">Bird</span></div>
+      <div class="enum-item"><span class="enum-id">32</span><span class="enum-name">HeliportedEnemy</span></div>
+      <div class="enum-item"><span class="enum-id">33</span><span class="enum-name">MotorizedEnemy</span></div>
+      <div class="enum-item"><span class="enum-id">34</span><span class="enum-name">StuckEnemy</span></div>
+      <div class="enum-item"><span class="enum-id">44</span><span class="enum-name">Wasp</span></div>
+      <div class="enum-item"><span class="enum-id">54</span><span class="enum-name">SlimeCreature</span></div>
+    </div>
+
+    <p>Most enemies use PointA and PointB as patrol boundaries. Contact with Blupi typically triggers death or damage. The Wasp (44) and Bird (20) follow horizontal patrol paths in the air. HeliportedEnemy (32) is initially inactive until a helicopter drops it.</p>
+
+    <h2 id="collectibles">Collectibles &amp; Power-ups</h2>
+
+    <div class="enum-grid">
+      <div class="enum-item"><span class="enum-id">5</span><span class="enum-name">TreasureChest</span></div>
+      <div class="enum-item"><span class="enum-id">6</span><span class="enum-name">Egg</span></div>
+      <div class="enum-item"><span class="enum-id">21</span><span class="enum-name">Key</span></div>
+      <div class="enum-item"><span class="enum-id">24</span><span class="enum-name">Skateboard</span></div>
+      <div class="enum-item"><span class="enum-id">25</span><span class="enum-name">Shield</span></div>
+      <div class="enum-item"><span class="enum-id">26</span><span class="enum-name">Lollypop</span></div>
+      <div class="enum-item"><span class="enum-id">29</span><span class="enum-name">GlueSupply</span></div>
+      <div class="enum-item"><span class="enum-id">30</span><span class="enum-name">InvisibilityPotion</span></div>
+      <div class="enum-item"><span class="enum-id">31</span><span class="enum-name">RechargingDevice</span></div>
+      <div class="enum-item"><span class="enum-id">49</span><span class="enum-name">RedKey</span></div>
+      <div class="enum-item"><span class="enum-id">50</span><span class="enum-name">GreenKey</span></div>
+      <div class="enum-item"><span class="enum-id">51</span><span class="enum-name">BlueKey</span></div>
+    </div>
+
+    <p><strong>Eggs</strong> (ID 6) are the primary objective — collect all of them in a level to activate the Goal exit. Keys (21, 49, 50, 51) come in four varieties that each match colour-coded locked doors in the environment.</p>
+
+    <h2 id="hazards">Hazards &amp; Explosives</h2>
+
+    <div class="enum-grid">
+      <div class="enum-item"><span class="enum-id">2</span><span class="enum-name">Bomb</span></div>
+      <div class="enum-item"><span class="enum-id">3</span><span class="enum-name">HangingBomb</span></div>
+      <div class="enum-item"><span class="enum-id">16</span><span class="enum-name">MovingBomb</span></div>
+      <div class="enum-item"><span class="enum-id">28</span><span class="enum-name">GlueTank</span></div>
+      <div class="enum-item"><span class="enum-id">55</span><span class="enum-name">Dynamite</span></div>
+      <div class="enum-item"><span class="enum-id">96</span><span class="enum-name">HomingBomb</span></div>
+      <div class="enum-item"><span class="enum-id">200</span><span class="enum-name">YellowBomb</span></div>
+      <div class="enum-item"><span class="enum-id">201</span><span class="enum-name">OrangeBomb</span></div>
+      <div class="enum-item"><span class="enum-id">202</span><span class="enum-name">BlueBomb</span></div>
+      <div class="enum-item"><span class="enum-id">203</span><span class="enum-name">GreenBomb</span></div>
+    </div>
+
+    <p>Bombs at IDs 200–203 are colour variants with different explosion effects. <strong>HomingBomb</strong> (96) actively tracks Blupi's position. <strong>GlueTank</strong> (28) is a hazard that slows movement rather than killing outright.</p>
+
+    <h2 id="special">Special &amp; Effects</h2>
+
+    <div class="enum-grid">
+      <div class="enum-item"><span class="enum-id">7</span><span class="enum-name">Goal</span></div>
+      <div class="enum-item"><span class="enum-id">8</span><span class="enum-name">Explosion1</span></div>
+      <div class="enum-item"><span class="enum-id">9</span><span class="enum-name">Explosion2</span></div>
+      <div class="enum-item"><span class="enum-id">10</span><span class="enum-name">Explosion3</span></div>
+      <div class="enum-item"><span class="enum-id">11</span><span class="enum-name">Explosion4</span></div>
+      <div class="enum-item"><span class="enum-id">14</span><span class="enum-name">Splash</span></div>
+      <div class="enum-item"><span class="enum-id">15</span><span class="enum-name">Bubbles</span></div>
+      <div class="enum-item"><span class="enum-id">27</span><span class="enum-name">Sparkles</span></div>
+      <div class="enum-item"><span class="enum-id">40</span><span class="enum-name">Inverter</span></div>
+    </div>
+
+    <p><strong>Goal</strong> (7) is the level exit door, placed at PointA. Explosion variants (8–11) represent the four frames of an explosion animation — they are placed as objects to mark where an explosion should occur. Effect items like Splash (14), Bubbles (15), and Sparkles (27) are purely decorative animations.</p>
+
+    <h2 id="item-movement">Item Movement System</h2>
+
+    <p>All moving items share the same set of timing fields. The game engine computes the interpolated position at each tick:</p>
+
+    <pre><code><span class="cm">// Conceptual movement logic (not in BlupiEdit — game engine only)</span>
+Position = Lerp(PointA, PointB, ticksElapsed / ABTime);
+
+<span class="cm">// State machine:</span>
+<span class="cm">// 1. Wait at A for AWait ticks</span>
+<span class="cm">// 2. Move to B over ABTime ticks</span>
+<span class="cm">// 3. Wait at B for BWait ticks</span>
+<span class="cm">// 4. Move back to A over BATime ticks</span>
+<span class="cm">// 5. Repeat</span></code></pre>
+
+    <p>The <strong>speed</strong> properties in <code>LevelItem</code> are computed from distance and time:</p>
+
+    <pre><code><span class="cm">// pixels per game tick</span>
+ABSpeed = Math.Round(Distance(PointA, PointB) / ABTime);</code></pre>
+
+    <h2 id="art-files">Art File Mapping</h2>
+
+    <p>Each <code>LevelItem</code> stores an <code>ArtFile</code> field (<code>TileTypes</code> enum) that tells the renderer which sprite sheet to use, and a <code>Tile</code> index within that sheet:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TileTypes value</th><th>ID</th><th>BMP file</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name"><code>Object</code></td><td>1</td><td>object.blp</td><td>Environment tiles in the 100×100 grid</td></tr>
+          <tr><td class="td-name"><code>Blupi000</code></td><td>2</td><td>blupi000.blp</td><td>Main character sprite sheet (first variant)</td></tr>
+          <tr><td class="td-name"><code>Explo</code></td><td>9</td><td>explo.blp</td><td>Explosion animations</td></tr>
+          <tr><td class="td-name"><code>Element</code></td><td>10</td><td>element.blp</td><td>Environmental elements, hazards</td></tr>
+          <tr><td class="td-name"><code>Blupi001</code></td><td>11</td><td>blupi001.blp</td><td>Main character variant 1</td></tr>
+          <tr><td class="td-name"><code>Blupi002</code></td><td>12</td><td>blupi002.blp</td><td>Main character variant 2</td></tr>
+          <tr><td class="td-name"><code>Blupi003</code></td><td>13</td><td>blupi003.blp</td><td>Main character variant 3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>In the renderer, item sprites are drawn with:</p>
+
+    <pre><code><span class="ty">Sprite</span>[] sprites = LevelData.TileImages[item.ArtFile];
+<span class="kw">if</span> (item.Tile &lt; sprites.Length)
+    gfx.<span class="fn">DrawSprite</span>(sprites[item.Tile], item.PointA - <span class="kw">new</span> <span class="ty">Size</span>(scrollX, scrollY));</code></pre>
+
+  </main>
+</div>
+
+<footer>
+  BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a>
+</footer>
+
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>
