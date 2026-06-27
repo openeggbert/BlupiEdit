@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contributing – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><div class="logo-icon">B</div>BlupiEdit</a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h4>On this page</h4>
+  </div>
+</aside>
+
+<main>
+<h1>Contributing</h1>
+<p>This guide covers everything needed to build BlupiEdit from source, run it locally, and submit contributions back to the project.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="prerequisites">Prerequisites</h2>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Component</th><th>Required version</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="td-name">.NET Framework</td><td>4.x</td><td>Target framework used by <code>BlupiEdit.csproj</code></td></tr>
+      <tr><td class="td-name">Mono (Linux/macOS)</td><td>6.x+</td><td>Alternative to .NET Framework on non-Windows; <code>mono BlupiEdit.exe</code></td></tr>
+      <tr><td class="td-name">IDE</td><td>Any</td><td>Visual Studio 2019+, JetBrains Rider, or MonoDevelop all work</td></tr>
+      <tr><td class="td-name">Git</td><td>2.x+</td><td>For cloning and branch management</td></tr>
+      <tr><td class="td-name">Speedy Blupi II</td><td>Original release</td><td><code>BLUPI.EXE</code> required for testing — must be obtained from a legal copy of the game</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="clone-build">Clone and Build</h2>
+
+<h3 id="clone">Clone the repository</h3>
+
+<pre><code>git clone https://github.com/openeggbert/BlupiEdit.git
+cd BlupiEdit</code></pre>
+
+<h3 id="build-windows">Build on Windows (Visual Studio)</h3>
+
+<ol>
+  <li>Open <code>BlupiEdit.sln</code> in Visual Studio</li>
+  <li>Select the <strong>Debug</strong> or <strong>Release</strong> configuration from the toolbar</li>
+  <li>Press <kbd>Ctrl+Shift+B</kbd> or choose <strong>Build → Build Solution</strong></li>
+  <li>The output binary is at <code>BlupiEdit/bin/Debug/BlupiEdit.exe</code> (or <code>Release/</code>)</li>
+</ol>
+
+<pre><code><span class="cm"># Or via MSBuild on the command line:</span>
+msbuild BlupiEdit.sln /p:Configuration=Release</code></pre>
+
+<h3 id="build-linux">Build and run on Linux (Mono)</h3>
+
+<pre><code><span class="cm"># Install Mono (Debian/Ubuntu)</span>
+sudo apt install mono-complete
+
+<span class="cm"># Build with xbuild / msbuild</span>
+msbuild BlupiEdit.sln /p:Configuration=Release
+
+<span class="cm"># Run</span>
+mono BlupiEdit/bin/Release/BlupiEdit.exe /path/to/BLUPI.EXE</code></pre>
+
+<div class="callout callout-warn">
+  <span class="callout-icon">&#9888;</span>
+  <p>WinForms rendering under Mono may differ from native Windows. Some visual elements (font metrics, control sizing) may appear slightly different. These are known Mono quirks and are not bugs in BlupiEdit itself.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="source-map">Source File Map</h2>
+
+<p>The project has a flat source layout under <code>BlupiEdit/</code>:</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>File</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><code>Program.cs</code></td><td>Application entry point; exposes <code>Program.Arguments[]</code> for the command-line EXE path</td></tr>
+      <tr><td><code>MainForm.cs</code></td><td>Main window; owns the <code>TabControl</code>, <code>SplitContainer</code>, panels, scrollbars, and menu handlers</td></tr>
+      <tr><td><code>MainForm.Designer.cs</code></td><td>Auto-generated WinForms layout — do not edit by hand</td></tr>
+      <tr><td><code>LevelData.cs</code></td><td>All data types (<code>LevelItem</code>, <code>TileInfo</code>, <code>Sprite</code>) plus load/save logic and EXE extraction</td></tr>
+      <tr><td><code>LevelViewModel.cs</code></td><td>Thin <code>PropertyGrid</code> wrapper for <code>LevelData</code> — exposes level metadata as browsable properties</td></tr>
+      <tr><td><code>LevelSelectForm.cs</code></td><td>Level browser dialog; lists level sets, renders miniature preview</td></tr>
+      <tr><td><code>LevelSelectForm.Designer.cs</code></td><td>Auto-generated WinForms layout for the level browser</td></tr>
+      <tr><td><code>TileList.cs</code></td><td>Custom <code>UserControl</code>: scrollable tile picker with keyboard navigation</td></tr>
+      <tr><td><code>Resources/DefaultLevel.blp</code></td><td>Embedded blank level used when no file is found on disk</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="code-style">Code Style</h2>
+
+<p>There is no explicit style guide. The codebase follows the conventions visible in the existing code:</p>
+
+<ul>
+  <li><strong>Naming:</strong> PascalCase for types and public members; camelCase for local variables and parameters</li>
+  <li><strong>Braces:</strong> Allman style (opening brace on its own line)</li>
+  <li><strong>Regions:</strong> Not used — keep methods in logical order without <code>#region</code></li>
+  <li><strong>Comments:</strong> Minimal inline comments; prefer self-documenting names</li>
+  <li><strong>Line endings:</strong> CRLF (Windows default); the <code>.gitattributes</code> file normalises these on commit</li>
+  <li><strong>Encoding:</strong> UTF-8 with BOM (Visual Studio default for C# files)</li>
+</ul>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>When in doubt, match the style of the surrounding code. Consistency within a file matters more than adherence to any particular external style guide.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="testing">Testing</h2>
+
+<p>There is currently no automated test suite. Manual testing against the original game is the only option:</p>
+
+<ol>
+  <li>Obtain <code>BLUPI.EXE</code> from a legal copy of Speedy Blupi II</li>
+  <li>Run BlupiEdit and open the EXE — tile graphics should load without errors</li>
+  <li>Open several World and User levels — the tile grid and objects should render correctly</li>
+  <li>Save a level to a User slot and verify the <code>.blp</code> file was written correctly by reloading it in BlupiEdit. For binary verification, check the file size — a valid <code>.blp</code> file is always <strong>exactly 50,468 bytes (0xC524)</strong>. You can also use a hex editor to spot-check known offsets: <code>MajorVersion</code> at 0x0000 should read <code>02 00</code>, and the level name at 0x0178 should match what you set.</li>
+  <li>Test on Linux with Mono if your change touches file paths or binary I/O</li>
+</ol>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="contributing-docs">Contributing to the Documentation</h2>
+
+<p>The documentation lives in the <code>web/</code> directory as static HTML files. If you add a new section, fix an error, or document a previously unknown field, follow these steps:</p>
+
+<ol>
+  <li>Edit the relevant <code>.html</code> file in <code>web/</code>. Give every new section heading an <code>id</code> attribute (lowercase, hyphenated) so it appears in the auto-generated sidebar TOC and can be deep-linked.</li>
+  <li>Add a corresponding entry to <code>SEARCH_INDEX</code> in <code>web/js/main.js</code>. The format is:
+    <pre><code>{ title:'Short Title', desc:'keywords and phrases users might search', page:'page.html#anchor', section:'section-key' },</code></pre>
+    The <code>section</code> key groups results (e.g. <code>'format'</code>, <code>'tiles'</code>, <code>'items'</code>, <code>'classes'</code>). Omitting or getting this wrong means the section will not appear in search results.
+  </li>
+  <li>If your change adds a new top-level page, also update the <code>&lt;nav&gt;</code> and <code>&lt;footer&gt;</code> on every existing page. A Python one-liner can do this in bulk — see the approach used in the session history.</li>
+  <li>Verify that the page renders correctly by opening it in a browser. Check that the sidebar TOC auto-populates your new headings and that the search finds your new entry.</li>
+</ol>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="pull-requests">Submitting a Pull Request</h2>
+
+<ol>
+  <li>Fork the repository on GitHub</li>
+  <li>Create a feature branch: <code>git checkout -b my-feature</code></li>
+  <li>Make your changes; test manually as described above</li>
+  <li>Commit with a clear message describing the change and its motivation</li>
+  <li>Push to your fork and open a Pull Request against the <code>master</code> branch</li>
+</ol>
+
+<pre><code>git checkout -b fix/scrollbar-overflow
+<span class="cm"># make changes</span>
+git add BlupiEdit/MainForm.cs
+git commit -m "Fix vertical scrollbar overflow when level is exactly 100 tiles tall"
+git push origin fix/scrollbar-overflow</code></pre>
+
+<p>Please include a brief description of <em>what</em> was changed and <em>why</em> in the PR body. If the change is non-trivial, mention how you tested it. For bug reports or feature requests without a ready fix, open a <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issue</a> instead.</p>
+
+</main>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
+</footer>
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

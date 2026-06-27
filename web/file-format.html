@@ -17,7 +17,12 @@
     <a href="items.html">Item Types</a>
     <a href="tiles.html">Tiles &amp; Sprites</a>
     <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
   </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
   <div class="header-search">
     <span class="search-icon">&#9906;</span>
     <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
@@ -29,24 +34,6 @@
 <aside class="sidebar">
   <div class="sidebar-section">
     <h4>On this page</h4>
-    <a href="#overview">Overview</a>
-    <a href="#memory-map">Complete Memory Map</a>
-    <a href="#header">Header — 0x0000</a>
-    <a href="#unknown-gaps">Unknown Gaps</a>
-    <a href="#scroll">Scroll Flags — 0x00D4</a>
-    <a href="#music-bg">Music &amp; Background — 0x00DE</a>
-    <a href="#start-positions">Start Positions — 0x0148</a>
-    <a href="#level-name">Level Name — 0x0178</a>
-    <a href="#tile-grid">Tile Grid 1 — 0x0364</a>
-    <a href="#tile-grid-2">Tile Grid 2 — 0x5184</a>
-    <a href="#items-array">Items Array — 0x9FA4</a>
-    <a href="#item-struct">Item Record (48 bytes)</a>
-    <a href="#file-size">Total File Size</a>
-    <a href="#save-semantics">Save Semantics</a>
-    <a href="#encoding">String Encoding</a>
-    <a href="#level-paths">Level File Paths</a>
-    <a href="#info-blp">info*.blp Files</a>
-    <a href="#tileinfo-exe">TileInfo in EXE</a>
   </div>
 </aside>
 
@@ -262,6 +249,58 @@
 </style>
 
 <!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="hexdump">Annotated Hex Dump</h2>
+
+<p>
+  The two extracts below show the raw bytes of a typical <code>.blp</code> level file
+  (DefaultLevel.blp — blank level, all defaults). Colour coding identifies each region:
+</p>
+
+<p>
+  <span class="hx-ver">&#9632; Version</span> &nbsp;
+  <span class="hx-unk">&#9632; Unknown / gap</span> &nbsp;
+  <span class="hx-scr">&#9632; Scroll flags</span> &nbsp;
+  <span class="hx-mus">&#9632; Music &amp; Background</span> &nbsp;
+  <span class="hx-nam">&#9632; Level name</span>
+</p>
+
+<p><strong>Extract 1 — File header (bytes 0x0000–0x003F)</strong></p>
+<pre><code>Offset   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+0x0000   <span class="hx-ver">02 00</span> <span class="hx-ver">00 00</span> <span class="hx-unk">00 00 00 00 00 00 00 00 00 00 00 00</span>
+         └──┬──┘ └──┬──┘ └────────────────────────────────┘
+         MajorVer MinorVer        unknown gap begins
+
+0x0010   <span class="hx-unk">00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+0x0020   <span class="hx-unk">00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+0x0030   <span class="hx-unk">00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+         └──────────────────────────────────────────────┘
+              0x0004–0x00D3: large unknown gap (202 bytes)</code></pre>
+
+<p><strong>Extract 2 — Scroll, Music, Background, and Level Name area</strong></p>
+<pre><code>Offset   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+0x00D0   <span class="hx-unk">00 00 00 00</span> <span class="hx-scr">00 00</span> <span class="hx-scr">00 00</span> <span class="hx-unk">00 00 00 00 00 00</span> <span class="hx-mus">00 00</span>
+                      └──┬──┘ └──┬──┘                   └──┬──┘
+                   HorzScroll VertScroll              Music (0)
+
+0x00E0   <span class="hx-mus">00 00</span> <span class="hx-unk">00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+         └──┬──┘
+        Background (0)
+
+         … (gap continues to 0x0178) …
+
+0x0178   <span class="hx-nam">00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+         └──────────────────────────────────────────────┘
+                    Level name — 32 bytes (empty here)</code></pre>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>All multi-byte integers are stored in <strong>little-endian</strong> byte order.
+  For example, <code>MajorVersion = 2</code> is stored as <code>02 00</code>, not <code>00 02</code>.
+  See the <a href="#endianness">Little-Endian Examples</a> section for more detail.</p>
+</div>
+
 <h2 id="header">Header — Offset 0x0000</h2>
 
 <p>
@@ -286,6 +325,61 @@ MinorVersion = reader.ReadUInt16();  <span class="cm">// position 0x0002, advanc
 <span class="cm">// LevelData.Save — writing</span>
 writer.Write(MajorVersion);          <span class="cm">// @ 0x0000</span>
 writer.Write(MinorVersion);          <span class="cm">// @ 0x0002</span></code></pre>
+
+<h3 id="version-values">Version Values in Practice</h3>
+
+<p>
+  The following version numbers have been observed in actual level files:
+</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Source</th><th>MajorVersion</th><th>MinorVersion</th><th>Notes</th></tr></thead>
+<tbody>
+  <tr><td>Original World levels (Speedy Blupi II CD)</td><td>2</td><td>0</td><td>All original campaign levels use this version</td></tr>
+  <tr><td>Original User levels (empty slots)</td><td>2</td><td>0</td><td>Same version — the game pre-populates empty user slots</td></tr>
+  <tr><td>DefaultLevel.blp (embedded resource)</td><td>2</td><td>0</td><td>BlupiEdit's fallback blank level</td></tr>
+  <tr><td>Levels saved by BlupiEdit</td><td>2</td><td>0</td><td>BlupiEdit preserves the values read from the original file on save</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>In practice, both fields are always <code>2</code> and <code>0</code> for all known Speedy Blupi II files. The game engine presumably uses them to gate format-specific parsing, but only one format variant is known to exist.</p>
+</div>
+
+<h3 id="defaultlevel-values">DefaultLevel.blp — Embedded Blank Level Field Values</h3>
+
+<p>
+  BlupiEdit embeds a minimal blank level (<code>DefaultLevel.blp</code>) as an assembly
+  manifest resource. This is used as the initial content when a user level file does not
+  yet exist. The following table shows the field values in that blank level:
+</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+<tbody>
+  <tr><td><code>MajorVersion</code></td><td>2</td><td>Same as all production levels</td></tr>
+  <tr><td><code>MinorVersion</code></td><td>0</td><td>Same as all production levels</td></tr>
+  <tr><td><code>HorizontalScroll</code></td><td>false (0)</td><td>Scrolling disabled by default</td></tr>
+  <tr><td><code>VerticalScroll</code></td><td>false (0)</td><td>Scrolling disabled by default</td></tr>
+  <tr><td><code>Music</code></td><td>0</td><td>Track 0 (first available track)</td></tr>
+  <tr><td><code>Background</code></td><td>0</td><td>Decor image 0 (decor000.blp)</td></tr>
+  <tr><td><code>StartPositions[0]</code></td><td>(64, 64)</td><td>Player 1 starts at tile (1,1) — one tile in from the top-left corner</td></tr>
+  <tr><td><code>StartPositions[1–3]</code></td><td>(0, 0)</td><td>Players 2–4 at origin (unused in single-player levels)</td></tr>
+  <tr><td><code>StartDirections[0]</code></td><td>true (non-zero)</td><td>Player 1 faces right</td></tr>
+  <tr><td><code>StartDirections[1–3]</code></td><td>false (0)</td><td>Unused</td></tr>
+  <tr><td><code>LevelName</code></td><td>"" (empty)</td><td>40 zero bytes — unnamed level</td></tr>
+  <tr><td><code>Tiles</code></td><td>all −1</td><td>10,000 cells, all empty (0xFFFF each) — blank tile grid</td></tr>
+  <tr><td><code>Tiles2</code></td><td>all −1</td><td>Secondary grid also blank</td></tr>
+  <tr><td><code>Items</code></td><td>empty</td><td>200 zero-byte records — no items placed</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The resource is loaded via <code>Assembly.GetManifestResourceStream("BlupiEdit.DefaultLevel.blp")</code> and passed directly to the <code>LevelData(Stream)</code> constructor (the same parsing path used for normal files). This guarantees that even a brand-new user level slot has a valid, self-consistent initial state.</p>
 
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <h2 id="unknown-gaps">Unknown / Reserved Gaps</h2>
@@ -830,6 +924,69 @@ Phase phase = Phase.WaitA;
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="endianness">Little-Endian Encoding Examples</h2>
+
+<p>
+  All multi-byte integers in <code>.blp</code> files are stored in
+  <strong>little-endian</strong> byte order (least-significant byte first),
+  matching the x86 native byte order that Windows programs use.
+  Readers unfamiliar with binary formats will find the examples below helpful.
+</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Value</th><th>Type</th><th>Bytes on disk</th><th>Explanation</th></tr></thead>
+<tbody>
+  <tr>
+    <td><code>MajorVersion = 2</code></td>
+    <td>uint16</td>
+    <td><code>02 00</code></td>
+    <td>2 = 0x0002 → low byte 0x02 first, high byte 0x00 second</td>
+  </tr>
+  <tr>
+    <td><code>PointA.X = 1280</code></td>
+    <td>int32</td>
+    <td><code>00 05 00 00</code></td>
+    <td>1280 = 0x00000500 → stored as 00 05 00 00 (LSB first)</td>
+  </tr>
+  <tr>
+    <td><code>PointA.X = 64</code></td>
+    <td>int32</td>
+    <td><code>40 00 00 00</code></td>
+    <td>64 = 0x00000040 → stored as 40 00 00 00</td>
+  </tr>
+  <tr>
+    <td><code>Tiles[x,y] = −1</code> (empty)</td>
+    <td>int16</td>
+    <td><code>FF FF</code></td>
+    <td>−1 in two's complement 16-bit = 0xFFFF</td>
+  </tr>
+  <tr>
+    <td><code>Tiles[x,y] = 0</code> (tile index 0)</td>
+    <td>int16</td>
+    <td><code>00 00</code></td>
+    <td>Zero — always interpreted as first tile in the array</td>
+  </tr>
+  <tr>
+    <td><code>Music = 3</code></td>
+    <td>uint16</td>
+    <td><code>03 00</code></td>
+    <td>3 = 0x0003 → 03 00</td>
+  </tr>
+</tbody>
+</table>
+</div>
+
+<p>
+  <strong>Why little-endian?</strong> The x86 processor architecture (used by all
+  Windows PCs) stores integers with the least-significant byte at the lowest memory
+  address. Writing a <code>BinaryWriter</code> on Windows without any byte-order
+  conversion produces little-endian output automatically. Reading with
+  <code>BinaryReader</code> on the same platform reverses the process transparently.
+  On big-endian platforms (rare for desktop use), byte-swapping would be required.
+</p>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
 <h2 id="save-semantics">Save Semantics — What Happens to Unknown Data</h2>
 
 <p>
@@ -988,27 +1145,115 @@ Phase phase = Phase.WaitA;
   the parent directory is listed and a case-insensitive match is attempted.
 </p>
 
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<h2 id="info-blp">info*.blp Files — User Collection Metadata</h2>
+<h3 id="path-collision">Save As Path Collision</h3>
 
 <p>
-  Files <code>data/info001.blp</code>–<code>data/info008.blp</code> describe the
-  8 possible user level collections. Their full structure is unknown, but
-  BlupiEdit reads exactly one field:
+  When the user invokes <em>File → Save As</em>, <code>LevelSelectForm</code> (in
+  <code>LevelSelectFormMode.Save</code>) lets them pick any user-collection slot. If the
+  chosen slot refers to an existing file, <code>File.Create(filename)</code> silently
+  overwrites it — there is no confirmation dialog and no backup is made.
 </p>
 
+<p>Situations where path collision can occur:</p>
+
 <div class="table-wrap">
-<table class="offset-table">
-<thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Description</th></tr></thead>
+<table>
+<thead><tr><th>Scenario</th><th>Risk</th><th>Behaviour</th></tr></thead>
 <tbody>
-  <tr><td>0x00–0x15</td><td>22 B</td><td><em>Unknown</em></td><td>Skipped with <code>Seek(0x16, Begin)</code></td></tr>
   <tr>
-    <td>0x0016</td><td>40 B</td><td>Collection name</td>
-    <td>CP1252 null-terminated string; displayed as "User N — &lt;name&gt;" in the level browser</td>
+    <td>Save to own current path</td>
+    <td>None</td>
+    <td><code>CurrentLevelPath</code> is unchanged; file is overwritten in-place with the same data</td>
+  </tr>
+  <tr>
+    <td>Save to a different existing user-level slot</td>
+    <td>Medium — overwrites target</td>
+    <td>Target file is <strong>immediately replaced</strong> with no warning. The overwritten level is permanently lost unless the user has a backup.</td>
+  </tr>
+  <tr>
+    <td>Save to a World level slot</td>
+    <td>High — overwrites original game file</td>
+    <td>World levels are also writable via <code>GetLevelName(0, n)</code>. The original campaign level is overwritten. Only an external backup or game reinstall can restore it.</td>
+  </tr>
+  <tr>
+    <td>Save to a slot whose file doesn't exist yet</td>
+    <td>None</td>
+    <td><code>File.Create</code> creates the file; the new slot becomes available in <code>LevelSelectForm</code></td>
+  </tr>
+  <tr>
+    <td>Concurrent editing (two BlupiEdit instances, same file)</td>
+    <td>Medium — last writer wins</td>
+    <td>Both instances share the same on-disk file. The second save silently overwrites the first. No file-locking is used.</td>
   </tr>
 </tbody>
 </table>
 </div>
+
+<div class="callout callout-danger">
+  <span class="callout-icon">&#9888;</span>
+  <p>
+    <strong>There is no undo for Save As.</strong> Once <code>File.Create</code> runs,
+    the previous file contents are gone. Always back up the <code>data/</code> directory
+    before making bulk edits or using Save As on levels you haven't copied elsewhere.
+  </p>
+</div>
+
+<p>The internal sequence for Save As:</p>
+
+<pre><code><span class="cm">// File → Save As handler in MainForm.cs</span>
+<span class="kw">using</span> (<span class="ty">LevelSelectForm</span> dlg = <span class="kw">new</span> <span class="ty">LevelSelectForm</span>(<span class="ty">LevelSelectFormMode</span>.Save))
+{
+    <span class="kw">if</span> (dlg.<span class="fn">ShowDialog</span>(<span class="kw">this</span>) == <span class="ty">DialogResult</span>.OK)
+    {
+        LevelData.<span class="fn">ChangeLevelPath</span>(dlg.UserID, dlg.LevelNum); <span class="cm">// updates CurrentLevelPath</span>
+        userid   = dlg.UserID;
+        levelnum = dlg.LevelNum;
+        LevelData.<span class="fn">SaveLevel</span>();  <span class="cm">// calls File.Create(CurrentLevelPath) — overwrites silently</span>
+        <span class="fn">UpdateFormText</span>();
+    }
+}</code></pre>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="info-blp">info*.blp Files — User Collection Metadata</h2>
+
+<p>
+  Files <code>data/info001.blp</code>–<code>data/info008.blp</code> each describe one
+  of the 8 possible user level collections. They are separate files from regular level
+  files and have their own distinct structure. BlupiEdit reads exactly one documented field
+  from them.
+</p>
+
+<h3 id="info-blp-structure">Full Structure (best-effort reverse engineering)</h3>
+
+<div class="table-wrap">
+<table class="offset-table">
+<thead><tr><th>Offset</th><th>End (excl.)</th><th>Bytes</th><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+<tbody>
+  <tr class="tr-unk"><td>0x0000</td><td>0x0002</td><td>2</td><td><em>Unknown</em></td><td></td><td>Possibly a version number; always 2 in observed files</td></tr>
+  <tr class="tr-unk"><td>0x0002</td><td>0x0004</td><td>2</td><td><em>Unknown</em></td><td></td><td>Possibly minor version; always 0</td></tr>
+  <tr class="tr-unk"><td>0x0004</td><td>0x0016</td><td>18</td><td><em>Unknown / reserved</em></td><td></td><td>Not read by BlupiEdit; likely game state / settings flags</td></tr>
+  <tr class="tr-known"><td>0x0016</td><td>0x003E</td><td>40</td><td>Collection name</td><td class="td-type">char[40]</td><td>CP1252 null-terminated string; displayed as "User N — &lt;name&gt;" in the level browser</td></tr>
+  <tr class="tr-unk"><td>0x003E</td><td>?</td><td>?</td><td><em>Unknown (remainder)</em></td><td></td><td>Total file size not yet verified; not read by BlupiEdit</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-warn">
+  <span class="callout-icon">&#9888;</span>
+  <p>
+    The table above is partially reverse-engineered. Only the 40-byte collection name at
+    offset <code>0x0016</code> is confirmed by BlupiEdit's source. All other fields are
+    inferred from file patterns or marked unknown. The total file size has not been verified.
+  </p>
+</div>
+
+<h3 id="info-blp-discovery">Discovery Logic</h3>
+
+<p>
+  <code>LevelSelectForm</code> iterates <code>i = 1..8</code> and checks whether
+  <code>info{i:000}.blp</code> exists. Collections are shown only for user IDs whose
+  file is present. This means deleting an info file removes that collection from the browser.
+</p>
 
 <pre><code><span class="cm">// LevelSelectForm.cs</span>
 <span class="kw">string</span> infoPath = LevelData.FindPathCaseInsensitive(
@@ -1142,7 +1387,33 @@ TileImages.Add(TileTypes.Blupi000, tmp.ToArray());   <span class="cm">// bmp dis
 </div>
 
 <footer>
-  BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
 </footer>
 <button id="back-top" title="Back to top">&#8679;</button>
 <script src="js/main.js"></script>

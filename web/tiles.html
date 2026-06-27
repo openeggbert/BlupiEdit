@@ -20,7 +20,12 @@
     <a href="items.html">Item Types</a>
     <a href="tiles.html" class="active">Tiles &amp; Sprites</a>
     <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
   </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
   <div class="header-search">
     <span class="search-icon">&#9906;</span>
     <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
@@ -32,19 +37,6 @@
   <aside class="sidebar">
     <div class="sidebar-section">
       <h4>On this page</h4>
-      <a href="#overview">Overview</a>
-      <a href="#tiletypes">TileTypes Enum</a>
-      <a href="#tileinfo">TileInfo Structure</a>
-      <a href="#tileinfo-memory">Binary Layout (12 bytes)</a>
-      <a href="#sprite">Sprite Structure</a>
-      <a href="#extraction">EXE Extraction</a>
-      <a href="#image-dirs">Image Directories</a>
-      <a href="#memory-model">Memory Model</a>
-      <a href="#transparency">Chroma-Key Transparency</a>
-      <a href="#rendering">Rendering Pipeline</a>
-      <a href="#grid">Tile Grid Rendering</a>
-      <a href="#background">Background Rendering</a>
-      <a href="#coordinate-system">Coordinate System</a>
     </div>
   </aside>
 
@@ -130,6 +122,43 @@ Sprite sheet files  (relative to game EXE)
     <div class="callout callout-info">
       <span class="callout-icon">&#8505;</span>
       <p>All four Blupi variants (Blupi000–Blupi003) share the same <code>BlupiTiles</code> metadata array read from <code>0x862F0</code>. Only the source BMP differs. This means all four sheets have the same number of frames and identical frame dimensions — the metadata describes the universal frame layout, and the art varies between sheets.</p>
+    </div>
+
+    <h3 id="blupi-variants">Blupi000–003 Shared Metadata Detail</h3>
+
+    <p>The four Blupi sprite sheets represent different visual states of the main character. They are loaded with identical <code>TileInfo[]</code> metadata (same frame count, same rectangles, same offsets) but distinct BMP files:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TileTypes member</th><th>ID</th><th>BMP file</th><th>Primary animations</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-name"><code>Blupi000</code></td><td>2</td><td><code>blupi000.blp</code></td>
+            <td>Standing idle, walking right, start-position indicator (frame 0 or 1)</td>
+          </tr>
+          <tr>
+            <td class="td-name"><code>Blupi001</code></td><td>11</td><td><code>blupi001.blp</code></td>
+            <td>Mirrored walking left (flipped counterpart to <code>Blupi000</code> walk frames)</td>
+          </tr>
+          <tr>
+            <td class="td-name"><code>Blupi002</code></td><td>12</td><td><code>blupi002.blp</code></td>
+            <td>Jumping, climbing, airborne states</td>
+          </tr>
+          <tr>
+            <td class="td-name"><code>Blupi003</code></td><td>13</td><td><code>blupi003.blp</code></td>
+            <td>Special actions (picking up items, hurt, etc.)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Because the metadata is identical across all four, a frame index that is valid for <code>Blupi000</code> is automatically valid for <code>Blupi001</code>, <code>Blupi002</code>, and <code>Blupi003</code>. The game selects which sheet to use based on the character's current action, and then uses the same frame index to pick the right animation frame.</p>
+
+    <p>The start-position indicator in BlupiEdit uses <code>Blupi000</code> and selects frame index 0 or 1 based on the starting direction flag in <code>LevelData.StartDirections</code>. Frame 0 faces right, frame 1 faces left.</p>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>Only <code>Blupi000</code> is used in the editor's visual rendering (start indicator). The other three variants (<code>Blupi001</code>–<code>Blupi003</code>) are loaded into <code>TileImages</code> but are not directly rendered in the editor at present — they exist to support potential future animation preview features.</p>
     </div>
 
     <h2 id="tileinfo">TileInfo Structure</h2>
@@ -368,6 +397,52 @@ Total memory ≈ sum of all individual sprite pixel areas × bytes-per-pixel.</c
       <p>Only <em>exact</em> <code>R=0, G=0, B=255</code> pixels are made transparent. Near-blue pixels that differ by even one channel value remain fully opaque. Speedy Blupi II art was designed without anti-aliasing, so this exact match is reliable — any blue fringing would indicate a non-original or re-encoded BMP.</p>
     </div>
 
+    <h3 id="chroma-precision">Chroma-Key Colour Precision</h3>
+
+    <p>The original Speedy Blupi II sprite sheets use a <strong>4-bit (16-colour) or 8-bit (256-colour) indexed palette</strong>. In these colour depths, the background colour is stored as a palette entry — a single byte index — not as a full RGB value. <code>Color.Blue</code> (<code>#0000FF</code>) is palette entry 1 in the standard Windows 16-colour palette, which is why it was chosen as the background key.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Chroma-key colour</td>
+            <td><code>R=0, G=0, B=255</code></td>
+            <td><code>Color.Blue</code> in .NET; HTML <code>#0000FF</code></td>
+          </tr>
+          <tr>
+            <td>Match mode</td>
+            <td>Exact RGB match only</td>
+            <td><code>Bitmap.MakeTransparent</code> uses exact equality — no tolerance</td>
+          </tr>
+          <tr>
+            <td>Result pixel format</td>
+            <td>32-bit ARGB</td>
+            <td>GDI+ promotes indexed bitmaps to ARGB when transparency is applied</td>
+          </tr>
+          <tr>
+            <td>Matched pixels</td>
+            <td><code>alpha = 0</code> (fully transparent)</td>
+            <td>Pixel colour channels retained but invisible</td>
+          </tr>
+          <tr>
+            <td>Non-matched pixels</td>
+            <td><code>alpha = 255</code> (fully opaque)</td>
+            <td>No semi-transparent pixels — this is a binary mask</td>
+          </tr>
+          <tr>
+            <td>Anti-aliasing</td>
+            <td>Not present</td>
+            <td>Original art has hard pixel edges; blended edge pixels would not match and would appear as blue fringe</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The promotion from indexed (4-bit or 8-bit) to 32-bit ARGB happens inside <code>MakeTransparent</code>. After this call, all subsequent cloning via <code>bmp.Clone(rect, bmp.PixelFormat)</code> produces 32-bit ARGB sub-bitmaps, ensuring the transparency information is carried through into each <code>Sprite.Image</code>.</p>
+
+    <p>If a BMP has been re-saved by image editing software (e.g. Paint.NET, GIMP), the file may have been converted to 24-bit or 32-bit RGB without a palette. In that case, the pixel value <code>#0000FF</code> is still correctly matched as long as the blue background was not altered during the conversion. However, if the tool applied any colour reduction, dithering, or resampling, some background pixels may no longer be exactly <code>#0000FF</code> and will appear as a solid blue fringe in the editor.</p>
+
     <h2 id="rendering">Rendering Pipeline</h2>
 
     <p>Both <code>tilePanel_Paint</code> and <code>objectPanel_Paint</code> follow this sequence on each <code>Paint</code> event:</p>
@@ -460,10 +535,80 @@ Total memory ≈ sum of all individual sprite pixel areas × bytes-per-pixel.</c
       <p>The background is reloaded on every <code>Paint</code> call. If you modify the scroll offset rapidly, this reads the background file many times per second. Caching the current background <code>Bitmap</code> and invalidating it only when <code>Background</code> changes would improve performance significantly.</p>
     </div>
 
+    <h3 id="decor-reference">Background Decor Reference</h3>
+
+    <p>Decor images are <strong>not sprite sheets</strong> — they are plain background BMPs tiled directly across the panel. They are loaded by <code>LoadImage("decor{N:000}")</code> which resolves to <code>IMAGE16/decor000.blp</code>, <code>IMAGE16/decor001.blp</code>, etc.</p>
+
+    <p>Key differences from sprite sheets:</p>
+    <ul>
+      <li>No <code>TileInfo</code> metadata — the whole BMP is drawn, not individual frames.</li>
+      <li>No chroma-key transparency is applied — <code>MakeTransparent</code> is <strong>not</strong> called for decor images. They are rendered as opaque.</li>
+      <li>Not stored in <code>LevelData.TileImages</code> — loaded on demand at render time and disposed immediately after drawing.</li>
+      <li>Assumed size: <strong>640 × 480 pixels</strong>. The tiling loop hardcodes these step values.</li>
+    </ul>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Sprite sheets</th><th>Decor images</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>File pattern</td>
+            <td><code>object.blp</code>, <code>blupi000.blp</code>, …</td>
+            <td><code>decor000.blp</code>, <code>decor001.blp</code>, …</td>
+          </tr>
+          <tr>
+            <td>Loaded when</td>
+            <td>Once at startup (<code>LoadGame()</code>)</td>
+            <td>Every <code>Paint</code> event</td>
+          </tr>
+          <tr>
+            <td>Kept in memory</td>
+            <td>Yes — entire session</td>
+            <td>No — disposed after each paint</td>
+          </tr>
+          <tr>
+            <td>Chroma-key</td>
+            <td>Yes (<code>MakeTransparent(Blue)</code>)</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Used via</td>
+            <td><code>TileImages[type][frameIndex]</code></td>
+            <td><code>LoadImage("decor{N:000}")</code> inline</td>
+          </tr>
+          <tr>
+            <td>Rendering</td>
+            <td>Per-sprite clipped to frame rect</td>
+            <td>Full BMP tiled at 640×480 steps with parallax</td>
+          </tr>
+          <tr>
+            <td>Selected by</td>
+            <td><code>LevelItem.ArtFile</code> + <code>LevelItem.Tile</code></td>
+            <td><code>LevelData.Background</code> (byte field in .blp header)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The number of decor images available depends on the game installation. BlupiEdit does not enumerate them — it simply formats the current <code>Background</code> value as a 3-digit zero-padded number and attempts to load that file. If the file is missing, <code>LoadImage</code> throws <code>FileNotFoundException</code>.</p>
+
     <h2 id="coordinate-system">Coordinate System</h2>
 
-    <p>BlupiEdit uses a pixel-based world coordinate system:</p>
+    <p>BlupiEdit uses a pixel-based world coordinate system with (0, 0) at the top-left corner of the map:</p>
 
+<pre><code>World space (6400 × 6400 px)          Screen/panel space
+(0,0)─────────────────────────────►X  (0,0)─────────────►X
+  │   ┌────┬────┬────┬────┐              │  ┌────┬────┐
+  │   │ 0,0│ 1,0│ 2,0│ 3,0│  ← tile     │  │    │    │  ← visible
+  │   ├────┼────┼────┼────┤    coords    │  │    │    │    tiles
+  │   │ 0,1│ 1,1│ 2,1│ 3,1│              │  └────┴────┘
+  │   ├────┼────┼────┼────┤              │
+  │   │ 0,2│ 1,2│ 2,2│ 3,2│              │  scrollX, scrollY: top-left of
+  │   └────┴────┴────┴────┘              │  the visible viewport in world px
+  ▼   each cell = 64 × 64 px           ▼
+  Y   100 × 100 tiles total             Y   screenX = worldX − scrollX</code></pre>
+
+    <p>Coordinate conversions:</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Concept</th><th>Value</th><th>Notes</th></tr></thead>
@@ -497,11 +642,129 @@ screenPos  = item.PointA - new Size(scrollX, scrollY)</code></pre>
     }
 }</code></pre>
 
+    <h2 id="sheet-layout">Sprite Sheet Layout</h2>
+
+    <p>A <strong>sprite sheet</strong> is one large BMP that packs many individual animation frames side by side. BlupiEdit never renders the whole sheet — it always cuts one frame at a time using the <code>Location</code> rectangle from a <code>TileInfo</code> record.</p>
+
+    <h3 id="sheet-non-uniform">Non-Uniform Grid</h3>
+
+    <p>Unlike many 2-D game engines that impose a fixed tile size (e.g. 16×16 or 32×32), Speedy Blupi II sprites have <strong>variable dimensions</strong>. Each <code>TileInfo.Location</code> rectangle independently encodes the width and height of its frame. Frames are not aligned to any grid inside the sheet — they are simply packed as tightly as possible by the original art pipeline.</p>
+
+    <p>Consequences for BlupiEdit:</p>
+    <ul>
+      <li>You cannot compute a frame's position from its index alone — you must look it up in the <code>TileInfo</code> array.</li>
+      <li>You cannot determine the frame count from the sheet dimensions — you must read the count from the EXE prefix.</li>
+      <li>Sprites of the same logical "type" (e.g. all walking frames) are <em>not</em> required to have the same pixel dimensions.</li>
+    </ul>
+
+    <h3 id="sheet-pipeline">BMP → Sprite Pipeline</h3>
+
+    <p>The full pipeline from a raw BMP on disk to a usable <code>Sprite[]</code> in memory:</p>
+
+<pre><code>  BLUPI.EXE
+  ┌──────────────────┐
+  │ int16 frameCount │  ← read at hard-coded offset (e.g. 0x872B8 for object.blp)
+  │ TileInfo[0]      │  Location(x,y,w,h) + Offset(ox,oy)
+  │ TileInfo[1]      │
+  │ ...              │
+  │ TileInfo[N-1]    │
+  └──────────────────┘
+           │
+           │  for each TileInfo:
+           ▼
+  object.blp  (large BMP, ~500-800 px wide)
+  ┌────────────────────────────────────┐
+  │                                    │
+  │  ┌──┐  ┌────┐  ┌──┐  ┌───────┐   │
+  │  │  │  │    │  │  │  │       │   │  ← frames packed at irregular positions
+  │  └──┘  └────┘  └──┘  └───────┘   │    each rect = one TileInfo.Location
+  │  ┌───────┐  ┌──────────┐         │
+  │  │       │  │          │         │
+  │  └───────┘  └──────────┘         │
+  └────────────────────────────────────┘
+           │
+           │  bmp.MakeTransparent(Color.Blue)
+           │  → exact #0000FF pixels become alpha=0
+           │
+           │  for each TileInfo t:
+           │      new Sprite(bmp.Clone(t.Location, pixFmt), t.Offset)
+           ▼
+  Sprite[]  (held in LevelData.TileImages[TileTypes.Object])
+  ┌──────────────┐  ┌──────────────┐      ┌──────────────┐
+  │ Sprite[0]    │  │ Sprite[1]    │  …   │ Sprite[N-1]  │
+  │ Image: Bmp   │  │ Image: Bmp   │      │ Image: Bmp   │
+  │ Offset: pt   │  │ Offset: pt   │      │ Offset: pt   │
+  └──────────────┘  └──────────────┘      └──────────────┘
+           │
+           │  source BMP immediately disposed after all frames cut
+           ▼
+  Only individual frame Bitmaps remain in RAM</code></pre>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>The full sprite sheet BMP is never cached in memory. It is opened, all frames are cloned via <code>bmp.Clone(rect, pixelFormat)</code>, and the sheet is then disposed. This means the working set is proportional to the total area of all sprite frames, not to the full sheet dimensions.</p>
+    </div>
+
+    <h3 id="sheet-frame-access">Frame Access at Render Time</h3>
+
+    <p>Each <code>LevelItem</code> stores a <code>Tile</code> index (a <code>short</code>). At render time:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>Code</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1. Look up sheet</td>
+            <td><code>TileImages[item.ArtFile]</code></td>
+            <td>Gets the <code>Sprite[]</code> for the item's sprite sheet (e.g. <code>TileTypes.Object</code>)</td>
+          </tr>
+          <tr>
+            <td>2. Bounds-check</td>
+            <td><code>if (item.Tile >= sprites.Length) skip</code></td>
+            <td>Guards against invalid index (corrupt data or reserved ID)</td>
+          </tr>
+          <tr>
+            <td>3. Draw sprite</td>
+            <td><code>gfx.DrawSprite(sprites[item.Tile], worldPos - scroll)</code></td>
+            <td>Renders the pre-clipped frame bitmap with its baked-in offset</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>This is a direct array lookup — O(1) per item. No rectangle is computed at render time; all geometry was resolved during <code>LoadGame()</code>.</p>
+
   </main>
 </div>
 
 <footer>
-  BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
 </footer>
 
 <button id="back-top" title="Back to top">&#8679;</button>

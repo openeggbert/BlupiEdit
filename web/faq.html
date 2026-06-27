@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><div class="logo-icon">B</div>BlupiEdit</a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h4>On this page</h4>
+  </div>
+</aside>
+
+<main>
+<h1>Frequently Asked Questions</h1>
+<p>Quick answers to common questions. For problems with BlupiEdit not starting or crashing, see <a href="troubleshooting.html">Troubleshooting</a>.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="custom-levels-playable">Can custom levels be played in the original game?</h2>
+
+<p><strong>Yes</strong> — if saved to the correct slot. The original Speedy Blupi II game reads levels from the same <code>data/</code> directory that BlupiEdit writes to. Save your level to a <em>User</em> slot (User 1–8, Design 1–20) using <strong>File → Save As</strong>, then open the game and navigate to that User collection. World slots can also be overwritten, but doing so replaces the original campaign levels.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="backup-levels">How do I back up the original game levels?</h2>
+
+<p>Copy the entire <code>data/</code> folder to a safe location before editing. All level files (<code>world*.blp</code>, <code>user*design*.blp</code>, <code>info*.blp</code>) live there. A simple folder copy is sufficient — there is no registry state or external database.</p>
+
+<pre><code><span class="cm"># Windows — copy data folder</span>
+xcopy "C:\Games\SpeedyBlupiII\data" "C:\Backups\SpeedyBlupiII-data" /E /I
+
+<span class="cm"># Linux</span>
+cp -r /games/SpeedyBlupiII/data ~/backups/SpeedyBlupiII-data</code></pre>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="new-item-types">Can BlupiEdit add new item types beyond the 41 defined ones?</h2>
+
+<p><strong>No</strong> — not currently. The set of item types is defined by the read-only <code>LevelItem.ItemType</code> enum in the source code. The <code>.blp</code> format stores item type as a numeric ID; the game engine interprets it. Adding a new type would require both a new enum value in BlupiEdit <em>and</em> support for it in the game engine, which is not modifiable in the original binary.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="unknown-bytes-zeros">Why does saving overwrite unknown bytes with zeros?</h2>
+
+<p>BlupiEdit reconstructs the <code>.blp</code> file entirely from the in-memory <code>LevelData</code> object on save. Fields in the large unknown region (<code>0x000A–0x0177</code>) are not modelled — there are no corresponding C# fields to hold their values. They are written as zeros because there is nothing else to write. See <a href="file-format.html">BLP Format</a> for offset details.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="macos">Does BlupiEdit work on macOS?</h2>
+
+<p><strong>Untested.</strong> Mono supports WinForms on macOS but the combination has known rendering issues. The binary I/O and level parsing code is platform-independent and should work correctly. The GUI layer may have visual quirks similar to those on Linux. If you test it, please report the results in a <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issue</a>.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="max-eggs">What is the maximum number of eggs in a level?</h2>
+
+<p>There is no separate egg counter — eggs are items like any other (item type 6, <strong>Egg</strong>). The total limit is <strong>200 item slots</strong> shared across all item types in the level. A level containing only eggs could have up to 200 of them, but in practice levels also contain enemies, platforms, a goal object, and start positions, leaving fewer slots for eggs.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="max-user-sets">Can I have more than 8 user level collections?</h2>
+
+<p><strong>No.</strong> The game engine and the <code>.blp</code> format both hard-code the limit to 8 user sets (User 1 through User 8). The level browser lists exactly these 8 slots regardless of how many <code>info*.blp</code> files exist. This limit is set by the original game and cannot be extended without modifying the game engine.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="tiles2">What does the secondary tile grid (Tiles2) do?</h2>
+
+<p><strong>Unknown.</strong> The <code>.blp</code> format contains a second 100×100 <code>short</code> grid (<code>Tiles2</code>) at offset <code>0x2C79</code> immediately after the primary tile grid. BlupiEdit reads it and preserves it on save, but never renders or exposes it. The original game presumably uses it for a secondary layer (perhaps decoration or collision metadata), but the exact semantics have not been reverse-engineered. If you have information about Tiles2, please open a GitHub Issue.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="properties-tab">Why does the Properties tab exist but contain nothing?</h2>
+
+<p>The <strong>Properties</strong> tab in the <code>TabControl</code> was reserved for a future level-wide property editor — a place to edit the level name, music index, background, scroll flags, and start positions. That feature was never implemented. The <code>PropertyGrid</code> ended up on the <strong>Objects</strong> tab instead, which works but conflates object inspection with level-wide settings. See <a href="architecture.html">Architecture</a> for details.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="non-contiguous-ids">Why are item IDs non-contiguous?</h2>
+
+<p>The <code>LevelItem.ItemType</code> enum has gaps — IDs 18, 22–23, and 35–39 are missing. These correspond to item types that were removed, repurposed, or never implemented in the version of the game that BlupiEdit targets. The original game engine likely had placeholder slots that were cut before release. The <code>.blp</code> format stores raw numeric IDs, so gaps in the enum simply mean those numeric values have no known behaviour.</p>
+
+</main>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
+</footer>
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

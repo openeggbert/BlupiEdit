@@ -20,7 +20,12 @@
     <a href="items.html" class="active">Item Types</a>
     <a href="tiles.html">Tiles &amp; Sprites</a>
     <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
   </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
   <div class="header-search">
     <span class="search-icon">&#9906;</span>
     <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
@@ -32,19 +37,6 @@
   <aside class="sidebar">
     <div class="sidebar-section">
       <h4>On this page</h4>
-      <a href="#overview">Overview</a>
-      <a href="#levelitem-struct">LevelItem Binary Layout</a>
-      <a href="#enum-reference">Full Enum Reference</a>
-      <a href="#id-gaps">Missing / Reserved IDs</a>
-      <a href="#platforms">Platforms &amp; Vehicles</a>
-      <a href="#enemies">Enemies</a>
-      <a href="#collectibles">Collectibles &amp; Power-ups</a>
-      <a href="#hazards">Hazards &amp; Explosives</a>
-      <a href="#special">Special &amp; Effects</a>
-      <a href="#item-movement">Movement System</a>
-      <a href="#computed-speed">Computed Speed Properties</a>
-      <a href="#slot-limit">200-Slot Limit</a>
-      <a href="#art-files">Art File Mapping</a>
     </div>
   </aside>
 
@@ -272,6 +264,8 @@
 
     <h2 id="platforms">Platforms &amp; Vehicles</h2>
 
+    <div class="category-bar cat-platforms">Platforms &amp; Vehicles — moving between PointA and PointB with configurable timing</div>
+
     <p>Moving platforms use the <strong>A↔B movement system</strong>. The item travels between <code>PointA</code> and <code>PointB</code> with configurable travel times and pause delays.</p>
 
     <div class="enum-grid">
@@ -299,7 +293,26 @@
       </table>
     </div>
 
+    <h3 id="helicopter">Helicopter (ID 13) — field usage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for Helicopter</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>Starting world position (where the helicopter begins the level)</td></tr>
+          <tr><td><code>PointB</code></td><td>Patrol destination / drop-off point; helicopter flies toward PointB</td></tr>
+          <tr><td><code>ABTime</code></td><td>Ticks to fly from A to B</td></tr>
+          <tr><td><code>BATime</code></td><td>Ticks to return from B to A</td></tr>
+          <tr><td><code>AWait</code></td><td>Hover time at PointA before departing</td></tr>
+          <tr><td><code>BWait</code></td><td>Hover time at PointB (where it may drop a HeliportedEnemy)</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Helicopter body sprite frame index</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h2 id="enemies">Enemies</h2>
+
+    <div class="category-bar cat-enemies">Enemies — patrol between PointA/PointB; contact damages or kills Blupi</div>
 
     <div class="enum-grid">
       <div class="enum-item"><span class="enum-id">4</span><span class="enum-name">Bulldozer</span></div>
@@ -322,7 +335,27 @@
       <li><strong>StuckEnemy (34)</strong> — stationary; attacks within a fixed radius rather than moving.</li>
     </ul>
 
+    <h3 id="bulldozer-jeep">Bulldozer (ID 4) / Jeep (ID 19) — field usage</h3>
+    <p>Both share identical field semantics; they differ only in speed and sprite:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for Bulldozer / Jeep</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>Left patrol boundary (vehicle spawns here, facing right initially)</td></tr>
+          <tr><td><code>PointB</code></td><td>Right patrol boundary (vehicle turns around here)</td></tr>
+          <tr><td><code>ABTime</code></td><td>Ticks to drive from A to B</td></tr>
+          <tr><td><code>BATime</code></td><td>Ticks to drive from B back to A</td></tr>
+          <tr><td><code>AWait</code></td><td>Pause at PointA (e.g. simulated idle/reverse time)</td></tr>
+          <tr><td><code>BWait</code></td><td>Pause at PointB</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Sprite frame for the facing-right direction (game engine mirrors for return)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h2 id="collectibles">Collectibles &amp; Power-ups</h2>
+
+    <div class="category-bar cat-collectibles">Collectibles &amp; Power-ups — items Blupi picks up; eggs are the primary objective</div>
 
     <div class="enum-grid">
       <div class="enum-item"><span class="enum-id">5</span><span class="enum-name">TreasureChest</span></div>
@@ -341,7 +374,24 @@
 
     <p><strong>Eggs (6)</strong> are the primary objective. Collecting every egg in the level activates the <strong>Goal (7)</strong> exit. Keys (21, 49, 50, 51) unlock colour-matched doors in the environment tiles.</p>
 
+    <h3 id="egg">Egg (ID 6) — field usage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for Egg</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>World position where the egg is placed; Blupi must reach this point to collect it</td></tr>
+          <tr><td><code>PointB</code></td><td>Unused (stationary collectible — no movement path)</td></tr>
+          <tr><td><code>ABTime</code> / <code>BATime</code></td><td>Unused (0 in all observed levels)</td></tr>
+          <tr><td><code>AWait</code> / <code>BWait</code></td><td>Unused</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Egg sprite frame index</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h2 id="hazards">Hazards &amp; Explosives</h2>
+
+    <div class="category-bar cat-hazards">Hazards &amp; Explosives — stationary or moving dangers; contact causes damage or death</div>
 
     <div class="enum-grid">
       <div class="enum-item"><span class="enum-id">2</span><span class="enum-name">Bomb</span></div>
@@ -364,7 +414,51 @@
       <li><strong>MovingBomb (16)</strong> — travels between PointA and PointB like a moving platform, explodes on contact.</li>
     </ul>
 
+    <h3 id="bomb">Bomb (ID 2) — field usage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for Bomb</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>World position of the stationary bomb</td></tr>
+          <tr><td><code>PointB</code></td><td>Unused (0 in all observed levels)</td></tr>
+          <tr><td><code>ABTime</code> / <code>BATime</code> / <code>AWait</code> / <code>BWait</code></td><td>Unused (stationary, no movement)</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Bomb sprite frame index</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="homing-bomb">HomingBomb (ID 96) — field usage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for HomingBomb</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>Spawn point; the bomb emerges from this world position and begins tracking Blupi</td></tr>
+          <tr><td><code>PointB</code></td><td>Purpose unknown; may be used as an initial targeting hint or ignored</td></tr>
+          <tr><td><code>ABTime</code></td><td>May control pursuit speed (ticks to close a unit distance); exact interpretation unverified</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Bomb sprite frame index</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="glue-tank">GlueTank (ID 28) — field usage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for GlueTank</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>World position of the glue hazard</td></tr>
+          <tr><td><code>PointB</code></td><td>Unused (stationary hazard)</td></tr>
+          <tr><td><code>ABTime</code> / <code>BATime</code> / <code>AWait</code> / <code>BWait</code></td><td>Unused</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Glue tank sprite frame index</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h2 id="special">Special &amp; Effects</h2>
+
+    <div class="category-bar cat-special">Special &amp; Effects — level logic items: goal, start positions, portals, explosions</div>
 
     <div class="enum-grid">
       <div class="enum-item"><span class="enum-id">7</span><span class="enum-name">Goal</span></div>
@@ -379,6 +473,20 @@
     </div>
 
     <p><strong>Goal (7)</strong> is the level exit; placed at <code>PointA</code>, activated when all eggs are collected. Explosion items (8–11) mark explosion animation positions — the game engine uses them as effect markers, not interactive objects. Effect items (Splash, Bubbles, Sparkles) are purely decorative and do not affect gameplay.</p>
+
+    <h3 id="goal">Goal (ID 7) — field usage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning for Goal</th></tr></thead>
+        <tbody>
+          <tr><td><code>PointA</code></td><td>World position of the exit door; Blupi must reach this point after collecting all eggs</td></tr>
+          <tr><td><code>PointB</code></td><td>Unused in observed levels (Goal is stationary)</td></tr>
+          <tr><td><code>ABTime</code> / <code>BATime</code> / <code>AWait</code> / <code>BWait</code></td><td>Unused</td></tr>
+          <tr><td><code>ArtFile</code></td><td>Sprite sheet for the exit door graphic (typically <code>Element</code>)</td></tr>
+          <tr><td><code>Tile</code></td><td>Closed-door sprite frame index (game switches to an open-door frame at runtime when activated)</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <h2 id="item-movement">Item Movement System</h2>
 
@@ -510,11 +618,159 @@ gfx.<span class="fn">DrawSprite</span>(sprites[item.Tile], item.PointA - <span c
 
     <p>In BlupiEdit, items are always drawn at <code>PointA</code>. The <code>PointB</code> and movement fields are stored and round-trip correctly, but the editor does not visualise the movement path or the B endpoint.</p>
 
+    <h2 id="item-tile-interaction">Item Interaction with the Tile Grid</h2>
+
+    <p>Items and tiles occupy the <strong>same coordinate space</strong> but are stored and rendered independently:</p>
+
+    <ul>
+      <li><strong>World coordinates</strong> — Items are positioned using <code>PointA</code> (and <code>PointB</code>, <code>PointC</code>) in world pixel coordinates (0–6399 on each axis). Tile coordinates are related by: <code>tileX = worldX / 64</code>, <code>tileY = worldY / 64</code>.</li>
+      <li><strong>Independent arrays</strong> — <code>LevelData.Tiles[x, y]</code> (the tile grid) and <code>LevelData.Items</code> (the item list) are separate data structures. Placing an item does not alter any tile cell, and changing a tile does not move items.</li>
+      <li><strong>Collision is runtime-only</strong> — The game engine evaluates tile collision for each item at runtime (e.g. whether a lift rests on a solid tile at PointA). BlupiEdit does not simulate or validate this — an item can be placed anywhere, including inside a wall or off-screen.</li>
+      <li><strong>Editor rendering</strong> — The Object Panel renders items at their <code>PointA</code> world coordinate converted to screen space using the current scroll offset. The Tile Panel independently renders the tile grid. Neither panel reacts to the other's data in real time.</li>
+      <li><strong>No validation</strong> — BlupiEdit does not warn if an item's <code>PointA</code> is outside the 6400×6400 world bounds, overlaps another item, or is placed inside a solid tile. The game engine is solely responsible for handling those cases.</li>
+    </ul>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>The typical convention in original levels is to align items to the 64-pixel tile grid (i.e. <code>PointA.X</code> and <code>PointA.Y</code> are multiples of 64), but this is not required by the format or the editor.</p>
+    </div>
+
+    <h2 id="pointc-usage">PointC Field — Per-Type Notes</h2>
+
+    <p><code>PointC</code> (offset 0x1C–0x23 in each item record) is always read and preserved by BlupiEdit but its purpose is not fully reverse-engineered. The following notes are based on inspection of original game levels and are hypothetical unless marked "confirmed":</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Item type(s)</th><th>PointC observed value</th><th>Hypothesis</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Stationary items (Bomb, Egg, Key, Goal, Collectibles)</td>
+            <td>Usually (0, 0) or same as PointA</td>
+            <td>Unused; the game engine ignores it for stationary items</td>
+            <td>Likely</td>
+          </tr>
+          <tr>
+            <td>Lift (1), Hovercraft (46)</td>
+            <td>Varies; sometimes between PointA and PointB</td>
+            <td>Possibly a third waypoint for curved or 3-stop paths; original game may use it for intermediate stops on more complex platform routes</td>
+            <td>Uncertain</td>
+          </tr>
+          <tr>
+            <td>HeliportedEnemy (32)</td>
+            <td>Distinct from PointA and PointB in some levels</td>
+            <td>Possibly the helicopter's initial approach point — where the helicopter first appears before flying to PointA to drop the enemy</td>
+            <td>Speculative</td>
+          </tr>
+          <tr>
+            <td>HomingBomb (96)</td>
+            <td>Often same as PointA</td>
+            <td>Possibly a reset point where the bomb respawns after detonating; or unused</td>
+            <td>Speculative</td>
+          </tr>
+          <tr>
+            <td>GlueTank (28)</td>
+            <td>Often (0, 0)</td>
+            <td>Likely unused for this type</td>
+            <td>Likely</td>
+          </tr>
+          <tr>
+            <td>Bulldozer (4), Jeep (19), MotorizedEnemy (33)</td>
+            <td>Often (0, 0) or matches PointA</td>
+            <td>May be a start-of-level position before the enemy begins its patrol (so the game can animate an entry sequence before transitioning to PointA patrol)</td>
+            <td>Speculative</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">&#9888;</span>
+      <p>All entries in the table above are reverse-engineered hypotheses, not documented game engine behaviour. The only confirmed fact is that BlupiEdit reads <code>PointC</code> at offsets 0x1C–0x23 and writes it back unmodified on save. If you change <code>PointC</code> in the PropertyGrid, the effect (if any) will only be visible when running the modified level in the game.</p>
+    </div>
+
+    <h2 id="unknown-fields">Unknown Field Hypotheses</h2>
+
+    <p>Five fields in every <code>LevelItem</code> record remain unidentified. Their values from original game levels are preserved on save, but their purpose is unknown. The table below collects hypotheses based on observed values and context:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Offset</th><th>Observed value range</th><th>Most common value</th><th>Hypothesis</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>field_A</code></td>
+            <td>0x0A</td>
+            <td>0–7 in most items; occasional higher values</td>
+            <td>0</td>
+            <td>Possibly an initial-phase flag or sub-type selector. Values 0–7 suggest a small enumeration: maybe direction (left/right/up/down) or starting phase (WaitA/MoveToB/etc.) for the A↔B state machine.</td>
+          </tr>
+          <tr>
+            <td><code>field_24</code></td>
+            <td>0x24</td>
+            <td>0, 1, or 2 in most observed levels</td>
+            <td>0</td>
+            <td>Possibly a difficulty tier or variant selector. Values 0–2 might correspond to "easy/normal/hard" or to a sprite animation variant.</td>
+          </tr>
+          <tr>
+            <td><code>field_26</code></td>
+            <td>0x26</td>
+            <td>Almost always 0</td>
+            <td>0</td>
+            <td>Possibly a flag byte that enables or disables a specific item behaviour (e.g. "respawn on death", "invulnerable"). Always 0 may simply mean the feature was unused in shipped levels.</td>
+          </tr>
+          <tr>
+            <td><code>field_28</code></td>
+            <td>0x28</td>
+            <td>Values 0–3 observed; some items have values up to 10</td>
+            <td>0</td>
+            <td>Possibly an index into a secondary property table (e.g. sound effect ID, interaction radius multiplier, or item group ID for collectible counting).</td>
+          </tr>
+          <tr>
+            <td><code>field_2E</code></td>
+            <td>0x2E</td>
+            <td>Almost always 0; non-zero only in a few enemy types</td>
+            <td>0</td>
+            <td>Likely padding or a reserved extension slot. The final 2 bytes of the 48-byte record; may have been reserved for a field that was never implemented in the shipped version.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>If you are reverse-engineering the game engine and identify the purpose of any of these fields, please open a GitHub issue or pull request to document your findings. The hypotheses above are the best guesses available from static file analysis alone.</p>
+    </div>
+
   </main>
 </div>
 
 <footer>
-  BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
 </footer>
 
 <button id="back-top" title="Back to top">&#8679;</button>

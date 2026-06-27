@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Context – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><div class="logo-icon">B</div>BlupiEdit</a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+    <a href="game-context.html" class="active">Game Context</a>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h4>On this page</h4>
+  </div>
+</aside>
+
+<main>
+<h1>Game Context</h1>
+<p>This page provides background on <strong>Speedy Blupi II</strong> (Eggbert 2) — the game that BlupiEdit targets — covering its history, world structure, and file layout.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="about">What is Speedy Blupi II?</h2>
+
+<p><strong>Speedy Blupi II</strong> is a 2D tile-based platformer published by <strong>Epsitec SA</strong> in 1997. It is known under two titles:</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Title</th><th>Region</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Speedy Blupi II</strong></td><td>French-speaking markets and original Swiss release</td></tr>
+      <tr><td><strong>Eggbert 2</strong></td><td>English-language / international release</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>The player controls <em>Blupi</em> (called <em>Eggbert</em> in the English version) — a small, yellow, oval-shaped character — through a series of levels collecting eggs, riding platforms, and avoiding enemies. The game was notable for its charming pixel art and a built-in level editor that shipped with the original CD-ROM release.</p>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>BlupiEdit is an independent, open-source re-implementation of a level editor for the game. It is not affiliated with Epsitec SA. All game assets (<code>BLUPI.EXE</code>, BMP sheets, <code>.blp</code> files) remain the property of Epsitec SA.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="history">Release History</h2>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Year</th><th>Event</th></tr></thead>
+    <tbody>
+      <tr><td>1997</td><td>Original Speedy Blupi II / Eggbert 2 released by Epsitec SA on CD-ROM for Windows 95/98</td></tr>
+      <tr><td>1997–2000</td><td>Bundled with various PC magazine cover discs across Europe</td></tr>
+      <tr><td>2010s</td><td>Game becomes abandonware; community reverse-engineering begins</td></tr>
+      <tr><td>2020s</td><td>openeggbert project begins: open-source port with format compatibility</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>Epsitec SA is a Swiss software company that also developed the original <em>Speedy Blupi I</em> (Eggbert) and a range of other educational/entertainment titles. Speedy Blupi II uses a different executable format and EXE offsets than Speedy Blupi I — BlupiEdit supports only Speedy Blupi II.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="world-structure">World Structure</h2>
+
+<p>Speedy Blupi II organises its playable content into <strong>level sets</strong>:</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Set</th><th>Slots</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>World</strong></td><td>~20 levels</td><td>The original campaign levels; shipped with the game; stored in the <code>data/</code> directory as <code>world&lt;NNN&gt;.blp</code></td></tr>
+      <tr><td><strong>User 1–8</strong></td><td>20 levels each</td><td>Eight slots for custom level collections; stored as <code>user&lt;X&gt;design&lt;NNN&gt;.blp</code>; each set also has an <code>info&lt;X&gt;.blp</code> collection header</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>Each level is a <strong>100 × 100 tile grid</strong> representing a world 6 400 × 6 400 pixels in size (each tile is 64 × 64 pixels). A level also holds up to <strong>200 game objects</strong> (items) placed at world pixel coordinates.</p>
+
+<p>The four <strong>start positions</strong> define where each of the four possible players (co-op mode) spawns. In practice only Player 1 is used in single-player.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="directory-layout">Installation Directory Layout</h2>
+
+<p>A standard Speedy Blupi II installation has this structure:</p>
+
+<pre><code>SpeedyBlupiII/
+├── BLUPI.EXE              <span class="cm"># Main executable — contains tile metadata at fixed offsets</span>
+├── data/                  <span class="cm"># Level files (.blp)</span>
+│   ├── world001.blp       <span class="cm"># World campaign level 1</span>
+│   ├── world002.blp
+│   ├── …
+│   ├── user1design001.blp <span class="cm"># User set 1, level 1</span>
+│   ├── info1.blp          <span class="cm"># User set 1 header (collection name)</span>
+│   └── …
+├── IMAGE16/               <span class="cm"># High-colour (16-bit) sprite BMP sheets</span>
+│   ├── blupi000.bmp       <span class="cm"># Player start indicator sprite sheet</span>
+│   ├── blupi001.bmp       <span class="cm"># Blupi variant 1</span>
+│   ├── decor000.bmp       <span class="cm"># Background decor image 0</span>
+│   └── …
+└── IMAGE08/               <span class="cm"># 8-bit (256-colour) fallback sprite sheets</span>
+    ├── blupi000.bmp
+    └── …</code></pre>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>BlupiEdit tries <code>IMAGE16/</code> first; if a BMP file is absent there it falls back to <code>IMAGE08/</code>. On Linux both directory names are resolved case-insensitively using <code>FindPathCaseInsensitive</code>.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="blupit-edit-connection">BlupiEdit and the Game</h2>
+
+<p>BlupiEdit interacts with two types of game files:</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>File / Directory</th><th>BlupiEdit reads</th><th>BlupiEdit writes</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>BLUPI.EXE</code></td><td>Yes — tile metadata at fixed offsets</td><td>Never</td><td>Source of <code>TileInfo[]</code> arrays and sprite frame geometry</td></tr>
+      <tr><td><code>IMAGE16/*.bmp</code> / <code>IMAGE08/*.bmp</code></td><td>Yes — sprite sheets for rendering</td><td>Never</td><td>Visual data for all tiles and game objects</td></tr>
+      <tr><td><code>data/*.blp</code></td><td>Yes — loads selected level</td><td>Yes — File → Save / Save As</td><td>Level binary data (tile grid + items + header)</td></tr>
+      <tr><td><code>data/info*.blp</code></td><td>Yes — reads collection name</td><td>Never</td><td>User level set headers shown in the level browser</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>The workflow is intentionally read-only for the game executable: tile graphics are extracted once at startup and cached in memory. Only level <code>.blp</code> files are ever written.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="openeggbert">The openeggbert Open-Source Port</h2>
+
+<p>The <strong>openeggbert</strong> project is an open-source re-implementation of Eggbert 2 for modern platforms. Key facts relevant to BlupiEdit users:</p>
+
+<ul>
+  <li>The port maintains <strong>full format compatibility</strong> with the original <code>.blp</code> level files — levels created with BlupiEdit play correctly in the open-source port.</li>
+  <li>The port does not require the original <code>BLUPI.EXE</code>; it bundles its own open-source assets. BlupiEdit still requires the original EXE for tile graphics.</li>
+  <li>Both BlupiEdit and the openeggbert port are hosted in the <a href="https://github.com/openeggbert">openeggbert GitHub organisation</a>.</li>
+  <li>The open-source port may expose new format fields or extend the <code>.blp</code> schema in future versions — such extensions would not be readable by the original game but would be documented in the <a href="file-format.html">BLP Format</a> reference.</li>
+</ul>
+
+</main>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
+</footer>
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

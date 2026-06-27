@@ -20,7 +20,12 @@
     <a href="items.html">Item Types</a>
     <a href="tiles.html">Tiles &amp; Sprites</a>
     <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
   </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
   <div class="header-search">
     <span class="search-icon">&#9906;</span>
     <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
@@ -32,14 +37,6 @@
   <aside class="sidebar">
     <div class="sidebar-section">
       <h4>On this page</h4>
-      <a href="#what-is">What is BlupiEdit?</a>
-      <a href="#getting-started">Quick Start</a>
-      <a href="#features">Features</a>
-      <a href="#requirements">Requirements</a>
-      <a href="#file-overview">File Overview</a>
-      <a href="#workflow">Workflow Diagram</a>
-      <a href="#keyboard">Keyboard Shortcuts</a>
-      <a href="#limitations">Known Limitations</a>
     </div>
     <div class="sidebar-section">
       <h4>Other pages</h4>
@@ -48,6 +45,11 @@
       <a href="items.html">Game Object Types</a>
       <a href="tiles.html">Tiles, Sprite, TileInfo</a>
       <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
     </div>
   </aside>
 
@@ -60,6 +62,10 @@
         <span class="badge badge-yellow">Windows Forms</span>
         <span class="badge badge-green">Open Source</span>
         <span class="badge badge-red">Speedy Blupi II</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-filled" href="https://github.com/openeggbert/BlupiEdit">&#128279; View on GitHub</a>
+        <a class="btn btn-outlined" href="https://github.com/openeggbert/BlupiEdit/releases">&#11015; Download</a>
       </div>
     </div>
 
@@ -90,6 +96,16 @@
         <p>Documentation of all public classes, properties, and methods</p>
       </a>
     </div>
+
+    <h2 id="about-game">About the Game</h2>
+
+    <p><strong>Speedy Blupi II</strong> (released as <em>Eggbert 2</em> in some regions) is a 2D platformer developed and published by <strong>Epsitec SA</strong> in 1997. The player controls Blupi — a small yellow oval character — through dozens of levels, collecting eggs and avoiding enemies such as bombs, helicopters, and bulldozers. The game was notable for its colourful pixel art and tight level design built around a 100×100 tile grid.</p>
+
+    <p>The game world is divided into <strong>World levels</strong> (the original campaign) and up to 8 <strong>User level sets</strong>, each containing up to 20 custom levels. All levels are stored as binary <code>.blp</code> files in the game's <code>data/</code> folder. Tile graphics and sprite metadata are embedded directly in the game executable (<code>BLUPI.EXE</code>) at fixed binary offsets, rather than in separate asset files.</p>
+
+    <p>BlupiEdit was created to let fans and modders explore, view, and eventually edit these level files. Because the format was never publicly documented, all structural knowledge — byte offsets, tile counts, item field semantics — was obtained by reverse engineering the original game binary. The editor reads graphics from <code>BLUPI.EXE</code> at startup; the executable itself is never modified.</p>
+
+    <p>The <strong>openeggbert</strong> open-source project preserves Eggbert 2 for modern platforms and maintains full compatibility with the original <code>.blp</code> file format. For a deeper dive into the game's history and structure, see the <a href="game-context.html">Game Context</a> reference page.</p>
 
     <h2 id="what-is">What is BlupiEdit?</h2>
 
@@ -190,6 +206,54 @@
       </table>
     </div>
 
+    <h2 id="ui-overview">UI Overview</h2>
+
+    <p>The main window is a Windows Forms application with a <strong>MenuStrip</strong>, a three-tab <strong>TabControl</strong>, and a <strong>SplitContainer</strong> inside each tab that divides the workspace into a left canvas and a right panel.</p>
+
+    <p><strong>Tiles tab</strong> — renders the 100×100 tile grid on the left and the scrollable tile picker on the right:</p>
+
+    <pre><code>┌─ BlupiEdit ──────────────────────────────────────── [─][□][✕] ─┐
+│  File    Level                                                   │
+├──────────────────────────────────────────────────────────────────┤
+│  ┌─ Tiles ─┐   Objects      Properties                          │
+│  │         └──────────────────────────────────────────────────  │
+│                                                                  │
+│  ┌──────────────────────────────────────┐  ┌────────────────┐   │
+│  │                                     ▲│  │ ┌──┐┌──┐┌──┐  │   │
+│  │           TilePanel                 ││  │ │  ││  ││  │  │   │
+│  │     (100 × 100 tile grid)           ││  │ └──┘└──┘└──┘  │   │
+│  │     (6 400 × 6 400 px world)        ││  │ ┌──┐┌──┐┌──┐  │   │
+│  │                                     ││  │ │  ││  ││  │  │   │
+│  │                                     ▼│  │ └──┘└──┘└──┘  │   │
+│  ├──────────────────────────────────────┤  │   TileList     │   │
+│  │◄════════════ hScrollBar1 ══════════►│  ├────────────────┤   │
+│  └──────────────────────────────────────┘  │◄ hScrollBar2 ►│   │
+│                                            └────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘</code></pre>
+
+    <p><strong>Objects tab</strong> — game objects at world coordinates on the left; <code>PropertyGrid</code> showing the selected item's fields on the right (<code>(H)</code> = Helicopter, <code>[B]</code> = Bomb, selected item highlighted in yellow):</p>
+
+    <pre><code>┌─ BlupiEdit ──────────────────────────────────────── [─][□][✕] ─┐
+│  File    Level                                                   │
+├──────────────────────────────────────────────────────────────────┤
+│   Tiles     ┌─ Objects ─┐    Properties                         │
+│             │            └──────────────────────────────────── │
+│                                                                  │
+│  ┌──────────────────────────────────┐  ┌──────────────────────┐  │
+│  │                                  │  │ ■ Bomb (ID: 2)       │  │
+│  │        ObjectPanel               │  ├──────────────────────┤  │
+│  │  (objects at world coords)       │  │ Type      Bomb       │  │
+│  │                                  │  │ PointA.X  1536       │  │
+│  │   (H)         (H)                │  │ PointA.Y  384        │  │
+│  │         [B] ← selected           │  │ ABTime    0          │  │
+│  │                      (H)         │  │ ABDir     0          │  │
+│  │  Click item → PropertyGrid       │  │  PropertyGrid        │  │
+│  ├──────────────────────────────────┤  └──────────────────────┘  │
+│  │◄════════════ hScrollBar1 ═══════►│                            │
+└──────────────────────────────────────────────────────────────────┘</code></pre>
+
+    <p>The <strong>Properties tab</strong> is an empty placeholder — it was reserved for a future level-wide property editor but was never implemented. The <code>PropertyGrid</code> was placed on the Objects tab instead.</p>
+
     <h2 id="file-overview">Project File Overview</h2>
 
     <pre><code>BlupiEdit/
@@ -248,7 +312,26 @@
        ├── Click in Object Panel → select LevelItem → PropertyGrid
        └── File → Save → <span class="fn">LevelData.SaveLevel()</span></code></pre>
 
-    <h2 id="keyboard">Keyboard Shortcuts — TileList</h2>
+    <h2 id="keyboard">Keyboard Shortcuts</h2>
+
+    <h3 id="keyboard-app">Main Application</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Key</th><th>Action</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>Ctrl+O</code></td><td>File → Open</td><td>Opens file dialog to select <code>BLUPI.EXE</code></td></tr>
+          <tr><td><code>Ctrl+S</code></td><td>File → Save</td><td>Saves the current level in place; disabled if no level is open</td></tr>
+          <tr><td><code>Ctrl+Shift+S</code></td><td>File → Save As</td><td>Opens level browser to choose a target slot</td></tr>
+          <tr><td><code>Alt+F4</code></td><td>Exit</td><td>Prompts to save if a level has unsaved changes</td></tr>
+          <tr><td><code>Tab</code> / <code>Shift+Tab</code></td><td>Cycle tabs</td><td>Standard WinForms <code>TabControl</code> keyboard navigation</td></tr>
+          <tr><td><code>F4</code></td><td>PropertyGrid — expand/collapse</td><td>Expands or collapses the focused category in the property grid</td></tr>
+          <tr><td><code>Alt+Enter</code></td><td>PropertyGrid — inline edit</td><td>Opens the inline value editor for the selected property</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="keyboard-tilelist">TileList</h3>
 
     <div class="table-wrap">
       <table>
@@ -266,6 +349,31 @@
       </table>
     </div>
 
+    <h2 id="cli">Command-Line Usage</h2>
+
+    <p>BlupiEdit accepts the path to <code>BLUPI.EXE</code> as an optional command-line argument. Passing it skips the <strong>File → Open</strong> dialog and loads tile graphics immediately on startup.</p>
+
+    <h3 id="cli-windows">Windows</h3>
+
+    <pre><code><span class="cm"># Absolute path (most common)</span>
+BlupiEdit.exe "C:\Games\SpeedyBlupiII\BLUPI.EXE"
+
+<span class="cm"># Relative path from the current directory</span>
+BlupiEdit.exe ..\SpeedyBlupiII\BLUPI.EXE</code></pre>
+
+    <h3 id="cli-linux">Linux (Mono)</h3>
+
+    <pre><code><span class="cm"># Absolute path</span>
+mono BlupiEdit.exe /home/user/games/SpeedyBlupiII/BLUPI.EXE
+
+<span class="cm"># Relative path</span>
+mono BlupiEdit.exe ../SpeedyBlupiII/BLUPI.EXE</code></pre>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">&#9888;</span>
+      <p>On Linux, file path lookup is case-insensitive within each directory component (BlupiEdit uses <code>FindPathCaseInsensitive</code>), but the directory itself must exist. If <code>BLUPI.EXE</code> is not found or is not a valid Speedy Blupi II executable, <code>LoadGame()</code> throws and the <em>Change Level</em> menu item remains greyed out.</p>
+    </div>
+
     <h2 id="limitations">Known Limitations</h2>
 
     <ul>
@@ -276,13 +384,62 @@
       <li>Maximum of <strong>200 objects</strong> per level (fixed by the .blp format)</li>
       <li>Maximum of <strong>8 user collections</strong>, each with up to 20 levels</li>
       <li>Linux support via Mono is functional but WinForms styling may differ from Windows</li>
+      <li>The <strong>Properties tab</strong> is shown in the UI mockup (including the <code>ABDir</code> field) but is not implemented — clicking the Properties tab has no effect in the current revision. The tab exists as a placeholder for a planned feature that was never completed.</li>
+      <li>Several <code>LevelItem</code> fields (<code>field_A</code>, <code>field_24</code>–<code>field_28</code>, <code>field_2E</code>, <code>PointC</code>) are read and round-tripped on save but their purpose is not fully reverse-engineered. The <code>ABDir</code> label visible in the Objects tab PropertyGrid refers to one of these fields.</li>
     </ul>
+
+    <h2 id="license">License</h2>
+
+    <p>BlupiEdit is open-source software released under the terms of its repository license. See the <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">LICENSE file on GitHub</a> for the full text.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name">BlupiEdit source code</td><td>Open source</td><td>Hosted at <a href="https://github.com/openeggbert/BlupiEdit">github.com/openeggbert/BlupiEdit</a></td></tr>
+          <tr><td class="td-name">BLUPI.EXE</td><td>Third-party binary</td><td>Published by Epsitec SA; never distributed with BlupiEdit — must be obtained from a legal copy of Speedy Blupi II</td></tr>
+          <tr><td class="td-name">Speedy Blupi II game assets</td><td>&#169; Epsitec SA</td><td>All tile graphics, sprite sheets, and BMP files are property of Epsitec SA</td></tr>
+          <tr><td class="td-name">openeggbert project</td><td>Open source</td><td>Modern open-source port of Eggbert 2, format-compatible with original <code>.blp</code> files</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#8505;</span>
+      <p>BlupiEdit reads tile graphics from <code>BLUPI.EXE</code> at runtime but never modifies or redistributes it. The executable is required solely as a graphics source for the editor session.</p>
+    </div>
 
   </main>
 </div>
 
 <footer>
-  BlupiEdit Documentation &mdash; <a href="https://github.com/openeggbert/BlupiEdit">openeggbert/BlupiEdit</a> on GitHub
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
 </footer>
 
 <button id="back-top" title="Back to top">&#8679;</button>

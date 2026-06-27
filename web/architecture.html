@@ -17,7 +17,12 @@
     <a href="items.html">Item Types</a>
     <a href="tiles.html">Tiles &amp; Sprites</a>
     <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
   </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
   <div class="header-search">
     <span class="search-icon">&#9906;</span>
     <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
@@ -29,24 +34,6 @@
 <aside class="sidebar">
   <div class="sidebar-section">
     <h4>On this page</h4>
-    <a href="#overview">Architecture Overview</a>
-    <a href="#layers">Application Layers</a>
-    <a href="#ui-layout">UI Layout</a>
-    <a href="#tab-tiles">Tab: Tiles</a>
-    <a href="#tab-objects">Tab: Objects</a>
-    <a href="#tab-properties">Tab: Properties</a>
-    <a href="#mainform">MainForm — Detail</a>
-    <a href="#leveldata">LevelData — Detail</a>
-    <a href="#levelitem">LevelItem — Detail</a>
-    <a href="#levelviewmodel">LevelViewModel</a>
-    <a href="#tilelist">TileList Control</a>
-    <a href="#levelselectform">LevelSelectForm</a>
-    <a href="#extensions">Extensions</a>
-    <a href="#load-flow">Full Load Flow</a>
-    <a href="#render-flow">Render Flow</a>
-    <a href="#save-flow">Save Flow</a>
-    <a href="#memory">Memory Model</a>
-    <a href="#paths">Path Resolution</a>
   </div>
 </aside>
 
@@ -205,6 +192,24 @@ Entry Point
   </p>
 </div>
 
+<h3 id="splitcontainer-tiles">SplitContainer Configuration — Tiles Tab</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Property</th><th>Value</th><th>Notes</th></tr></thead>
+<tbody>
+  <tr><td>Control name</td><td><code>splitContainer1</code></td><td></td></tr>
+  <tr><td>Orientation</td><td>Vertical</td><td>Splitter is a vertical bar dividing left/right panels</td></tr>
+  <tr><td>SplitterDistance</td><td>388 px</td><td>Width of Panel1 (tile canvas side); Panel2 gets the remainder</td></tr>
+  <tr><td>IsSplitterFixed</td><td>false</td><td>User can drag the splitter at runtime</td></tr>
+  <tr><td>Panel1MinSize</td><td>default (25 px)</td><td>Cannot collapse tile canvas below 25 px</td></tr>
+  <tr><td>Panel2MinSize</td><td>default (25 px)</td><td>Cannot collapse tile picker below 25 px</td></tr>
+  <tr><td>Panel1 hosts</td><td>ToolStrip + TableLayoutPanel → <code>tilePanel</code> + 2 scrollbars</td><td></td></tr>
+  <tr><td>Panel2 hosts</td><td><code>TileList</code> (tileList1)</td><td></td></tr>
+</tbody>
+</table>
+</div>
+
 <h3>tilePanel scroll bar configuration</h3>
 <pre><code><span class="cm">// Set in RefreshCurrentLevelView() after level load</span>
 hScrollBar1.Minimum = <span class="nu">0</span>;
@@ -239,6 +244,22 @@ hScrollBar1.Value = <span class="nu">0</span>;
               ToolbarVisible = false
               SelectedObject = LevelViewModel  OR  LevelItem</code></pre>
 
+<h3 id="splitcontainer-objects">SplitContainer Configuration — Objects Tab</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Property</th><th>Value</th><th>Notes</th></tr></thead>
+<tbody>
+  <tr><td>Control name</td><td><code>splitContainer2</code></td><td></td></tr>
+  <tr><td>Orientation</td><td>Vertical</td><td>Splitter is a vertical bar dividing left/right panels</td></tr>
+  <tr><td>SplitterDistance</td><td>386 px</td><td>Width of Panel1 (object canvas side)</td></tr>
+  <tr><td>IsSplitterFixed</td><td>false</td><td>User can drag the splitter at runtime</td></tr>
+  <tr><td>Panel1 hosts</td><td>TableLayoutPanel → <code>objectPanel</code> + 2 scrollbars</td><td></td></tr>
+  <tr><td>Panel2 hosts</td><td><code>PropertyGrid</code> (propertyGrid1)</td><td></td></tr>
+</tbody>
+</table>
+</div>
+
 <h3>PropertyGrid target</h3>
 <p>
   The PropertyGrid's <code>SelectedObject</code> is switched depending on selection:
@@ -253,10 +274,34 @@ propertyGrid1.SelectedObject = <span class="kw">new</span> LevelViewModel(LevelD
 <h2 id="tab-properties">Tab 2: "Properties"</h2>
 
 <p>
-  This tab page (<code>tabPage3</code>) is declared in the designer but contains
-  no controls — it is an empty placeholder, presumably for a future level-wide
-  properties editor that would avoid embedding the PropertyGrid in the Objects tab.
+  <code>tabPage3</code> ("Properties") is declared in <code>MainForm.Designer.cs</code>
+  but contains no controls. It is an intentional placeholder — never implemented.
 </p>
+
+<h3 id="tab-properties-intent">Original Intent</h3>
+<p>
+  The original design presumably intended this tab to be a <strong>level-wide property editor</strong>:
+  a place to change the level name, music index, background decor, scroll flags, and start positions
+  without needing an object selected. This would have mirrored the separation of concerns visible
+  in the UI mockup — <em>Objects</em> tab for per-item inspection, <em>Properties</em> tab for
+  level metadata.
+</p>
+
+<h3 id="tab-properties-current">Why It Was Never Implemented</h3>
+<p>
+  The <code>PropertyGrid</code> ended up on the Objects tab instead, displaying either the
+  selected <code>LevelItem</code> or the <code>LevelViewModel</code> wrapper (when no item is
+  selected). This solved the immediate need — browsing level metadata — but it conflates two
+  concerns in a single control: the grid switches context depending on what is selected.
+</p>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>A future implementation could move <code>LevelViewModel</code> display to Tab 2 and
+  reserve the Objects tab's <code>PropertyGrid</code> exclusively for item inspection.
+  This would require only adding controls to <code>tabPage3</code> — the data model
+  (<code>LevelViewModel</code>) already exists.</p>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <h2 id="mainform">MainForm — Detailed Reference</h2>
@@ -350,6 +395,42 @@ After Level → Change Level (LoadLevel succeeds):
     sprites = TileImages[item.ArtFile]
     <span class="kw">if</span> (item.Tile >= sprites.Length) continue
     DrawSprite(sprites[item.Tile], item.PointA - scroll)</code></pre>
+
+<h3 id="render-quality">Render Quality Settings — Why These Values</h3>
+
+<p>
+  <code>SetOptions()</code> (defined in <code>Extensions.cs</code>) applies four GDI+
+  quality settings to the <code>Graphics</code> object before any drawing. Each setting
+  is deliberately chosen for pixel-art correctness and maximum throughput:
+</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Setting</th><th>Value</th><th>Reason</th></tr></thead>
+<tbody>
+  <tr>
+    <td><code>InterpolationMode</code></td>
+    <td><code>NearestNeighbor</code></td>
+    <td>Pixels scale 1:1 with no blending. Any other mode (Bilinear, Bicubic) would blur pixel-art edges, destroying the retro aesthetic.</td>
+  </tr>
+  <tr>
+    <td><code>SmoothingMode</code></td>
+    <td><code>None</code></td>
+    <td>Anti-aliasing applies only to vector paths. Since BlupiEdit draws only bitmaps, this has no visual effect — it is set to <code>None</code> to suppress any overhead.</td>
+  </tr>
+  <tr>
+    <td><code>PixelOffsetMode</code></td>
+    <td><code>None</code></td>
+    <td>Keeps drawn pixels aligned to integer screen coordinates. Offset modes shift all rendering by half a pixel, which causes visible misalignment on a 1:1 pixel grid.</td>
+  </tr>
+  <tr>
+    <td><code>CompositingQuality</code></td>
+    <td><code>HighSpeed</code></td>
+    <td>Skips gamma-corrected alpha blending. Sprites use a chroma-key mask, not alpha transparency, so compositing quality has no visible impact — speed wins.</td>
+  </tr>
+</tbody>
+</table>
+</div>
 
 <h3>objectPanel_MouseClick — hit test</h3>
 <pre><code>clickWorld = (e.X + scrollX, e.Y + scrollY)   <span class="cm">// screen → world coordinates</span>
@@ -859,10 +940,162 @@ Click in objectPanel → objectPanel_MouseClick()
   correctly resolved even when all path components differ in case.
 </p>
 
+
+<h2 id="drag-drop">Drag-and-Drop (Unimplemented)</h2>
+
+<p>
+  The <code>TileList</code> control fires an <code>ItemDrag</code> event when the user
+  begins dragging a tile. This event is <strong>not wired to any handler</strong> in
+  <code>MainForm</code> — the drag source exists but the drop target does not.
+</p>
+
+<p>The intended workflow would have been:</p>
+
+<ol>
+  <li>User selects a tile in <code>TileList</code> (right panel of the Tiles tab)</li>
+  <li>User drags the tile onto <code>tilePanel</code> (left panel)</li>
+  <li>On drop, the tile at the target grid cell is updated to the dragged tile index</li>
+  <li><code>tilePanel</code> repaints the updated cell</li>
+</ol>
+
+<p>
+  In addition, the MenuStrip toolbar contains two <code>ToolStripButton</code> items —
+  <strong>Draw</strong> and <strong>Select</strong> — that are visible in the UI but have
+  no <code>Click</code> event handlers. These were presumably placeholders for switching
+  between a "paint tiles" mode and a "select/move tiles" mode, neither of which was
+  implemented.
+</p>
+
+<div class="callout callout-warn">
+  <span class="callout-icon">&#9888;</span>
+  <p>Implementing drag-and-drop tile painting is the most impactful missing feature.
+  It would require: (1) wiring <code>TileList.ItemDrag</code>, (2) registering
+  <code>tilePanel</code> as a drop target via <code>AllowDrop = true</code> and a
+  <code>DragDrop</code> handler, (3) updating <code>LevelData.Tiles[x, y]</code>,
+  and (4) invalidating the painted cell.</p>
+</div>
+
+<h2 id="default-level">DefaultLevel.blp — Embedded Resource</h2>
+
+<p>
+  <code>BlupiEdit/Resources/DefaultLevel.blp</code> is compiled into the assembly as an
+  embedded resource. It serves as a fallback when the file-based constructor of
+  <code>LevelData</code> cannot find the requested <code>.blp</code> file on disk.
+</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Property</th><th>Value</th></tr></thead>
+<tbody>
+  <tr><td>Location in repository</td><td><code>BlupiEdit/Resources/DefaultLevel.blp</code></td></tr>
+  <tr><td>Embedded resource name</td><td><code>BlupiEdit.Resources.DefaultLevel.blp</code></td></tr>
+  <tr><td>Tile grid</td><td>100×100 cells, all set to <code>−1</code> (empty / no tile)</td></tr>
+  <tr><td>Items array</td><td>200 slots, all zero-filled (no items)</td></tr>
+  <tr><td>Level name</td><td>Empty string</td></tr>
+  <tr><td>Start positions</td><td>All four players at (0, 0)</td></tr>
+  <tr><td>HorizontalScroll / VerticalScroll</td><td><code>0</code></td></tr>
+  <tr><td>Music / Background</td><td><code>0</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="default-level-loading">How it is loaded</h3>
+
+<p>
+  The file-based constructor <code>LevelData(string filename)</code> first attempts to open
+  the file on disk. If the file does not exist it falls back to the embedded resource:
+</p>
+
+<pre><code><span class="cm">// Simplified — actual code in LevelData.cs</span>
+Stream stream;
+<span class="kw">if</span> (File.Exists(filename))
+{
+    stream = File.OpenRead(filename);
+}
+<span class="kw">else</span>
+{
+    stream = Assembly.GetExecutingAssembly()
+                     .GetManifestResourceStream(<span class="st">"BlupiEdit.Resources.DefaultLevel.blp"</span>);
+}
+<span class="kw">using</span> (<span class="kw">var</span> reader = <span class="kw">new</span> BinaryReader(stream))
+{
+    <span class="cm">// parse fields at fixed offsets …</span>
+}</code></pre>
+
+<p>
+  Because the fallback is always available (it is embedded in the EXE), the
+  constructor never throws a <code>FileNotFoundException</code>. Both the default
+  constructor and the file-based constructor always produce a fully valid
+  <code>LevelData</code> instance — there is no two-phase initialisation.
+</p>
+
+<h2 id="event-wiring">Event Handler Wiring</h2>
+
+<p>
+  All event subscriptions are set up in <code>MainForm.Designer.cs</code> (auto-generated)
+  and <code>MainForm.cs</code>. The table below lists every event MainForm registers,
+  the control that fires it, and the handler method.
+</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Control</th><th>Event</th><th>Handler method</th><th>Purpose</th></tr></thead>
+<tbody>
+  <tr><td><code>MainForm</code></td><td><code>Load</code></td><td><code>MainForm_Load</code></td><td>Reads <code>Program.Arguments[0]</code> and calls <code>LoadGame()</code> if an EXE path was passed on the command line</td></tr>
+  <tr><td><code>MainForm</code></td><td><code>FormClosing</code></td><td><code>MainForm_FormClosing</code></td><td>Prompts the user to save if a level is open and has unsaved changes; cancels close on "Cancel"</td></tr>
+  <tr><td><code>tilePanel</code></td><td><code>Paint</code></td><td><code>tilePanel_Paint</code></td><td>Full tile-grid repaint: background decor, tile sprites column-major with scroll offset, GDI+ quality settings</td></tr>
+  <tr><td><code>tilePanel</code></td><td><code>Resize</code></td><td><code>tilePanel_Resize</code></td><td>Recalculates scrollbar <code>Maximum</code> and <code>LargeChange</code> values when the panel is resized</td></tr>
+  <tr><td><code>objectPanel</code></td><td><code>Paint</code></td><td><code>objectPanel_Paint</code></td><td>Draws all <code>LevelItem</code> sprites at their <code>PointA</code> world coordinates; highlights the selected item in yellow</td></tr>
+  <tr><td><code>objectPanel</code></td><td><code>MouseClick</code></td><td><code>objectPanel_MouseClick</code></td><td>Converts click position to world coordinates, finds the nearest item, selects it, and refreshes the <code>PropertyGrid</code></td></tr>
+  <tr><td><code>hScrollBar1</code></td><td><code>Scroll</code></td><td><code>hScrollBar1_Scroll</code></td><td>Updates horizontal scroll position for the tile panel; invalidates <code>tilePanel</code></td></tr>
+  <tr><td><code>vScrollBar1</code></td><td><code>Scroll</code></td><td><code>vScrollBar1_Scroll</code></td><td>Updates vertical scroll position for the tile panel; invalidates <code>tilePanel</code></td></tr>
+  <tr><td><code>hScrollBar2</code></td><td><code>Scroll</code></td><td><code>hScrollBar2_Scroll</code></td><td>Updates horizontal scroll position for the object panel; invalidates <code>objectPanel</code></td></tr>
+  <tr><td><code>vScrollBar2</code></td><td><code>Scroll</code></td><td><code>vScrollBar2_Scroll</code></td><td>Updates vertical scroll position for the object panel; invalidates <code>objectPanel</code></td></tr>
+  <tr><td><code>openToolStripMenuItem</code></td><td><code>Click</code></td><td><code>openToolStripMenuItem_Click</code></td><td>Shows <code>OpenFileDialog</code> filtered to <code>*.exe</code>; calls <code>LoadGame()</code> on confirm; enables Change Level</td></tr>
+  <tr><td><code>saveToolStripMenuItem</code></td><td><code>Click</code></td><td><code>saveToolStripMenuItem_Click</code></td><td>Calls <code>LevelData.SaveLevel()</code> on the current path; disabled until a level is open</td></tr>
+  <tr><td><code>saveAsToolStripMenuItem</code></td><td><code>Click</code></td><td><code>saveAsToolStripMenuItem_Click</code></td><td>Opens <code>LevelSelectForm</code> in Save mode; calls <code>SaveLevel()</code> on the chosen slot</td></tr>
+  <tr><td><code>changeLevelToolStripMenuItem</code></td><td><code>Click</code></td><td><code>changeLevelToolStripMenuItem_Click</code></td><td>Opens <code>LevelSelectForm</code> in Open mode; calls <code>LoadLevel()</code> and refreshes the view; disabled until <code>LoadGame()</code> succeeds</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>The <code>TileList</code> control inside the Tiles tab has its own internal event handlers (keyboard navigation, paint, scroll) that are not registered by <code>MainForm</code> — they are self-contained inside <code>TileList.cs</code>.</p>
+</div>
+
 </main>
 </div>
 
-<footer>BlupiEdit Documentation &mdash; <a href="index.html">Back to Overview</a></footer>
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
+</footer>
 <button id="back-top" title="Back to top">&#8679;</button>
 <script src="js/main.js"></script>
 </body>

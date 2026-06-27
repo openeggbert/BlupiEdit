@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Troubleshooting – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><div class="logo-icon">B</div>BlupiEdit</a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h4>On this page</h4>
+  </div>
+</aside>
+
+<main>
+<h1>Troubleshooting</h1>
+<p>Common problems and their solutions. If your issue is not listed here, open a <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issue</a>.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="exe-not-found">EXE Not Found / Wrong Path</h2>
+
+<p><strong>Symptom:</strong> An error dialog appears on startup or after File → Open, saying the file was not found or is not a valid game executable.</p>
+
+<p><strong>Cause:</strong> The path passed to <code>LevelData.LoadGame()</code> does not point to a valid <code>BLUPI.EXE</code>.</p>
+
+<p><strong>Fix:</strong></p>
+<ul>
+  <li>Locate your Speedy Blupi II installation directory. The executable is named exactly <code>BLUPI.EXE</code> (all caps on Windows; case-insensitive lookup on Linux).</li>
+  <li>Use <strong>File → Open</strong> and navigate manually rather than typing the path.</li>
+  <li>If passing the path as a command-line argument, quote paths that contain spaces: <code>BlupiEdit.exe "C:\My Games\SpeedyBlupiII\BLUPI.EXE"</code></li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="change-level-greyed">Change Level Stays Greyed Out</h2>
+
+<p><strong>Symptom:</strong> The <strong>Level → Change Level</strong> menu item is always disabled.</p>
+
+<p><strong>Cause:</strong> <code>LoadGame()</code> must complete successfully before <code>Change Level</code> is enabled. If the EXE could not be loaded, the menu item stays disabled.</p>
+
+<p><strong>Fix:</strong></p>
+<ul>
+  <li>Make sure File → Open was used and completed without an error dialog.</li>
+  <li>Check the title bar — it should show the path to the loaded EXE after a successful load.</li>
+  <li>If you passed the EXE path as a command-line argument and the menu is still greyed, the path was likely wrong. See <a href="#exe-not-found">EXE Not Found</a> above.</li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="black-tiles">Black or Missing Tiles</h2>
+
+<p><strong>Symptom:</strong> The tile panel renders mostly black, or specific tile types show as blank/missing.</p>
+
+<p><strong>Cause:</strong> BlupiEdit loads sprite BMP sheets from <code>IMAGE16/</code> (or <code>IMAGE08/</code> as fallback) relative to <code>BLUPI.EXE</code>. If these directories are absent or their contents are missing, sprites cannot be loaded.</p>
+
+<p><strong>Fix:</strong></p>
+<ul>
+  <li>Verify that the <code>IMAGE16/</code> directory exists next to <code>BLUPI.EXE</code> and contains <code>.bmp</code> files.</li>
+  <li>On Linux, directory names are matched case-insensitively, but the directory itself must exist. If your installation has <code>image16/</code> (lowercase), it will still be found.</li>
+  <li>If <code>IMAGE16/</code> is missing entirely, BlupiEdit falls back to <code>IMAGE08/</code>. If both are absent, all sprites will be black.</li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="levels-not-appearing">Level Files Not Appearing in Browser</h2>
+
+<p><strong>Symptom:</strong> The level browser (Level → Change Level) shows empty lists or no levels.</p>
+
+<p><strong>Cause:</strong> The <code>data/</code> directory next to <code>BLUPI.EXE</code> is missing or empty.</p>
+
+<p><strong>Fix:</strong></p>
+<ul>
+  <li>Confirm that <code>data/</code> exists alongside <code>BLUPI.EXE</code> and contains <code>.blp</code> files.</li>
+  <li>On Linux, ensure the directory is named exactly <code>data</code> — <code>Data</code> or <code>DATA</code> will also be found via case-insensitive lookup, but the directory must exist.</li>
+  <li>World levels are named <code>world&lt;NNN&gt;.blp</code>; user levels are <code>user&lt;X&gt;design&lt;NNN&gt;.blp</code>. Both patterns must be present for their respective lists to populate.</li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="mono-rendering">Linux/Mono WinForms Rendering Differences</h2>
+
+<p><strong>Symptom:</strong> UI elements look different from Windows — controls are misaligned, fonts are wrong, scrollbars look different.</p>
+
+<p><strong>Cause:</strong> Mono's WinForms implementation uses the platform's native GTK widgets, which renders differently from the Windows GDI+ implementation.</p>
+
+<p><strong>Known quirks under Mono:</strong></p>
+<ul>
+  <li>Font metrics differ — text may overflow or be clipped in labels</li>
+  <li><code>PropertyGrid</code> may have different row heights</li>
+  <li>Scrollbar arrows and thumb rendering use the GTK theme</li>
+  <li>Colour rendering in the tile panel is correct — GDI+ drawing operations behave the same</li>
+</ul>
+
+<p>These are cosmetic issues and do not affect level loading, editing, or saving.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="reserved-bytes">Saving Corrupts Unknown Bytes</h2>
+
+<p><strong>Symptom:</strong> After saving and reloading a level, some data is lost or changed — specifically in the large unknown region at bytes <code>0x000A–0x0177</code>.</p>
+
+<p><strong>Cause:</strong> BlupiEdit reconstructs the <code>.blp</code> file from scratch on save. Fields in the large unknown gap (<a href="file-format.html#unknown-gap">see BLP Format</a>) are written as <strong>zeros</strong> because their purpose is unknown. If the original file had non-zero values there, they are lost.</p>
+
+<p><strong>Workaround:</strong> Always keep a backup of the original <code>data/</code> directory before editing. For World levels especially, the original values in the unknown gap may be important to the game engine.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="slow-scroll">Background Stuttering / Slow Scroll</h2>
+
+<p><strong>Symptom:</strong> Scrolling the tile panel is slow or choppy, especially when a background decor image is loaded.</p>
+
+<p><strong>Cause:</strong> Background decor images (<code>decor&lt;NNN&gt;.bmp</code>) are large (640×480 px) and are loaded fresh from disk each time the tile panel repaints. There is no in-memory caching between repaints.</p>
+
+<p><strong>Workaround:</strong> This is a known architectural limitation. No fix exists in the current codebase. On fast SSDs the stutter is minimal.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="division-by-zero">Division by Zero — ABSpeed / BASpeed</h2>
+
+<p><strong>Symptom:</strong> BlupiEdit throws a <code>DivideByZeroException</code> when displaying properties of a specific item.</p>
+
+<p><strong>Cause:</strong> The <code>LevelItem.ABSpeed</code> and <code>BASpeed</code> computed properties divide by <code>ABTime</code>. If <code>ABTime == 0</code> (which can happen for items with coincident A/B points or default zero values), the division throws.</p>
+
+<p><strong>Fix:</strong> This is a bug in the current codebase. Until it is fixed upstream, avoid selecting items where <code>ABTime</code> shows as <code>0</code> in the PropertyGrid.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="item-limit">200-Item Limit Reached Silently</h2>
+
+<p><strong>Symptom:</strong> You have more than 200 items in a level but after save and reload some items are missing.</p>
+
+<p><strong>Cause:</strong> The <code>.blp</code> format stores exactly 200 item slots. Items beyond slot 200 are silently dropped during save — no error or warning is shown.</p>
+
+<p><strong>Fix:</strong> Keep item counts below 200. The PropertyGrid on the level (<code>LevelViewModel</code>) shows the total item count — check it before saving.</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="path-collision">Saving a User Level to a World Slot</h2>
+
+<p><strong>Symptom:</strong> After File → Save As, the wrong file was overwritten — a World level file was replaced by a User level.</p>
+
+<p><strong>Cause:</strong> The Save As dialog (level browser in save mode) lets you pick any slot including World slots. If you pick a World slot while saving a modified User level, the World <code>.blp</code> file is overwritten.</p>
+
+<p><strong>Fix:</strong> Always verify the target slot in the Save As dialog before confirming. Keep backups of the original <code>data/</code> directory. See also <a href="file-format.html">BLP Format → Level File Paths</a>.</p>
+
+</main>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
+</footer>
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>

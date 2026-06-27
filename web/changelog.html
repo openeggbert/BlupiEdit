@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changelog – BlupiEdit Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><div class="logo-icon">B</div>BlupiEdit</a>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="file-format.html">BLP Format</a>
+    <a href="items.html">Item Types</a>
+    <a href="tiles.html">Tiles &amp; Sprites</a>
+    <a href="classes.html">API Reference</a>
+    <a href="game-context.html">Game Context</a>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">&#9728;</button>
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-search">
+    <span class="search-icon">&#9906;</span>
+    <input id="search-input" type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+</header>
+
+<div class="page-wrap">
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <h4>On this page</h4>
+  </div>
+</aside>
+
+<main>
+<h1>Changelog</h1>
+
+<div class="callout callout-info">
+  <span class="callout-icon">&#8505;</span>
+  <p>The <strong>revival</strong> branch is an active development branch started in 2026 that picks up from the original 2014 codebase. The original commits (2014) established the core data model and UI; the revival commits (2026) added features, fixed bugs, and added this documentation site.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="revival-2026">Revival Branch (2026)</h2>
+
+<div class="callout callout-info" style="margin-bottom:1.5rem;">
+  <span class="callout-icon">&#8505;</span>
+  <p>All entries below correspond to commits on the <code>revival</code> branch. Commit hashes link to GitHub.</p>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-blue">2026-06-13</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/5703dc0" style="color:var(--accent2);">5703dc0</a></code>
+    <strong>Thorough rewrite of all BlupiEdit web documentation</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Complete rewrite of the web documentation site (<code>web/</code>)</li>
+    <li>Revised and expanded all 6 HTML pages (Overview, Architecture, BLP Format, Item Types, Tiles &amp; Sprites, API Reference)</li>
+    <li>Added auto-generated sidebar TOC, hamburger mobile nav, multi-column footer</li>
+    <li>Added hero buttons, UI overview diagram, keyboard shortcuts, CLI usage, license section</li>
+    <li>Added new standalone pages: Game Context, Contributing, Troubleshooting, FAQ, Changelog, 404</li>
+    <li>Added light/dark theme toggle with <code>localStorage</code> persistence</li>
+    <li>Added keyboard navigation for search, copy button fix, print stylesheet</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-blue">2026-06-13</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/a590eeb" style="color:var(--accent2);">a590eeb</a></code>
+    <strong>Add comprehensive HTML documentation site (web/)</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Initial creation of the <code>web/</code> documentation site with 6 HTML pages</li>
+    <li>Shared CSS stylesheet with dark theme, custom properties, responsive layout</li>
+    <li>Shared JavaScript: search index, tabs, copy buttons, back-to-top, active nav, fade-in</li>
+    <li>Sidebar with auto-highlighted scroll position</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-green">2026-05-31</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/8790a42" style="color:var(--accent2);">8790a42</a></code>
+    <strong>Add LevelViewModel and object selection with highlight in object panel</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Added <code>LevelViewModel</code> class as a <code>PropertyGrid</code> wrapper for level-wide metadata</li>
+    <li>Clicking an object in the Object Panel now selects it and highlights it in yellow</li>
+    <li>Selected <code>LevelItem</code> is shown in the <code>PropertyGrid</code> on the Objects tab</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2026-05-14</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/238304c" style="color:var(--accent2);">238304c</a></code>
+    <strong>Several issues were fixed</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Rewrote <code>LevelData.cs</code>: added full binary parsing for all known header fields, tile grids, and the 200-item array; introduced <code>TileInfo</code>, <code>Sprite</code>, <code>Extensions</code>, and <code>LevelViewModel</code> types</li>
+    <li>Added <code>tilePanel_Paint</code>, <code>objectPanel_Paint</code>, and <code>objectPanel_MouseClick</code> to <code>MainForm.cs</code>; implemented GDI+ rendering pipeline with chroma-key transparency and parallax background</li>
+    <li>Fixed <code>LevelSelectForm.cs</code>: level name is now read from 0x0178 and displayed in the level browser list</li>
+    <li>Added <code>CMakeLists.txt</code> for Linux/Mono build support</li>
+    <li>Added <code>.gitignore</code> for build output directories</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2 id="original-2014">Original Codebase (2014)</h2>
+
+<div class="callout callout-info" style="margin-bottom:1.5rem;">
+  <span class="callout-icon">&#8505;</span>
+  <p>The original codebase was written in 2014 and is the foundation of the revival branch. It established the core data model, UI layout, and binary file parsing.</p>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2014-10-16</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/db1cf53" style="color:var(--accent2);">db1cf53</a></code>
+    <strong>Fix major/minor version loading</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Corrected byte offsets for reading <code>MajorVersion</code> and <code>MinorVersion</code> from <code>.blp</code> files</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2014-06-22</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/d589b95" style="color:var(--accent2);">d589b95</a></code>
+    <strong>Adding more controls</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Introduced <code>TileList.cs</code> and <code>TileList.designer.cs</code> — a new custom <code>UserControl</code> (333 lines) implementing the scrollable tile-picker grid with mouse selection and <code>ItemDrag</code> event</li>
+    <li>Added <code>LevelData.cs</code> stubs for <code>LevelItem</code> struct and <code>ItemTypes</code> enum (14 new lines)</li>
+    <li>Updated <code>MainForm.Designer.cs</code> extensively (155 lines changed): added <code>splitContainer1</code>/<code>splitContainer2</code>, wired up <code>TileList</code> and <code>PropertyGrid</code> panels, adjusted panel layout</li>
+    <li>Added <code>MainForm.resx</code> with image resources for the new controls</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2014-06-21</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/dfedb83" style="color:var(--accent2);">dfedb83</a></code>
+    <strong>Add menu events and basic Tiles/Objects tab controls</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Wired up <code>File → Open Game</code> and <code>Level → Change Level</code> menu items with event handlers in <code>MainForm.cs</code></li>
+    <li>Added horizontal and vertical scrollbars to the tile and object panels</li>
+    <li>Expanded <code>LevelSelectForm.cs</code>: level grid now populates from the game directory, Open/Save buttons fire <code>DialogResult</code> correctly</li>
+    <li>Extended <code>MainForm.Designer.cs</code> with 121 new lines: split containers, scroll bars, and panel size configuration</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2014-06-21</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/ca19340" style="color:var(--accent2);">ca19340</a></code>
+    <strong>Add TabControl and title bar text</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Added the three-tab <code>TabControl</code> (Tiles, Objects, Properties) to <code>MainForm</code></li>
+    <li>Title bar now displays the application name and loaded EXE path</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2014-01-30</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/36b254b" style="color:var(--accent2);">36b254b</a></code>
+    <strong>Add default level file, complete level selection dialog</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Added embedded <code>DefaultLevel.blp</code> resource used when no file is found on disk</li>
+    <li>Completed <code>LevelSelectForm</code>: level set list, level list, miniature preview</li>
+  </ul>
+</div>
+
+<!-- entry -->
+<div class="prop-item" style="margin-bottom:1.5rem;">
+  <div class="prop-header">
+    <span class="badge badge-yellow">2014-01-19</span>
+    <code><a href="https://github.com/openeggbert/BlupiEdit/commit/c0720e4" style="color:var(--accent2);">c0720e4</a></code>
+    <strong>Initial Commit</strong>
+  </div>
+  <ul style="margin-top:.5rem; padding-left:1.25rem;">
+    <li>Initial project structure: <code>BlupiEdit.sln</code>, <code>Program.cs</code>, <code>MainForm.cs</code>, <code>LevelData.cs</code></li>
+    <li>Core binary parsing of <code>.blp</code> level files and <code>BLUPI.EXE</code> sprite metadata</li>
+    <li>Basic <code>TileList</code> custom control with keyboard navigation</li>
+  </ul>
+</div>
+
+</main>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Navigate</h5>
+      <a href="index.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="file-format.html">BLP Format</a>
+      <a href="items.html">Item Types</a>
+      <a href="tiles.html">Tiles &amp; Sprites</a>
+      <a href="classes.html">API Reference</a>
+      <a href="game-context.html">Game Context</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contributing.html">Contributing</a>
+      <a href="changelog.html">Changelog</a>
+    </div>
+    <div class="footer-col">
+      <h5>Project</h5>
+      <a href="https://github.com/openeggbert/BlupiEdit">GitHub Repository</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/issues">GitHub Issues</a>
+      <a href="https://github.com/openeggbert/BlupiEdit/blob/master/LICENSE">License</a>
+    </div>
+    <div class="footer-col">
+      <h5>About</h5>
+      <p>BlupiEdit is an open-source level editor for Speedy Blupi&nbsp;II (Eggbert&nbsp;2), written in C# / Windows Forms.</p>
+      <p class="footer-copy">&copy; 2026 openeggbert contributors</p>
+    </div>
+  </div>
+</footer>
+<button id="back-top" title="Back to top">&#8679;</button>
+<script src="js/main.js"></script>
+</body>
+</html>
